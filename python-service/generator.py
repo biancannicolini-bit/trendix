@@ -4,8 +4,16 @@ import re
 import time
 from cost_tracker import calculate_cost
 
-client = anthropic.Anthropic()
 MODEL = "claude-haiku-4-5-20251001"
+
+_client: anthropic.Anthropic | None = None
+
+
+def _get_client() -> anthropic.Anthropic:
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic()
+    return _client
 
 
 def build_prompt(
@@ -70,7 +78,7 @@ async def generate_calendar(
     )
     start = time.time()
 
-    response = client.messages.create(
+    response = _get_client().messages.create(
         model=MODEL,
         max_tokens=8000,
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
