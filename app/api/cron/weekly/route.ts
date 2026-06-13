@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendEmail, sendWhatsApp } from "@/lib/notifications";
 import { getNextWeekStart } from "@/lib/dates";
-import type { Profile, User } from "@prisma/client";
+import type { Profile, Subscription, User } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 
-type UserWithProfile = User & { profile: Profile };
+type UserWithProfile = User & {
+  profile: Profile;
+  subscription: Subscription | null;
+};
 
 type GeneratedPost = {
   day: string;
@@ -38,14 +41,16 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const targetUserId = body.userId as string | undefined;
 
-  const users = await prisma.user.findMany({
-    where: {
-      ...(targetUserId ? { id: targetUserId } : {}),
-      subscription: { status: "authorized" },
-      profile: { isNot: null },
-    },
-    include: { profile: true, subscription: true },
-  });
+  const users = (
+    await prisma.user.findMany({
+      where: {
+        ...(targetUserId ? { id: targetUserId } : {}),
+        subscription: { status: "authorized" },
+        profile: { isNot: null },
+      },
+      include: { profile: true, subscription: true },
+    })
+  ).filter((u): u is UserWithProfile => u.profile !== null);
 
   const results = await Promise.allSettled(users.map(processUser));
   const succeeded = results.filter((r) => r.status === "fulfilled").length;

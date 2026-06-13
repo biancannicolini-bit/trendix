@@ -57,11 +57,23 @@ jobs:
 
   deploy:
     needs: build-and-push
-    if: ${{ secrets.VPS_HOST != '' && secrets.VPS_SSH_KEY != '' }}
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check VPS configuration
+        id: vps_check
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          if [ -z "$VPS_HOST" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "VPS secrets not set — skipping deploy"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Update Swarm services on VPS
+        if: steps.vps_check.outputs.configured == 'true'
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
