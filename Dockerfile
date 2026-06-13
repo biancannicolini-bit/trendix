@@ -26,10 +26,15 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --chown=nextjs:nodejs scripts/docker-entrypoint.sh ./docker-entrypoint.sh
+
+# Partial prisma copy misses CLI deps (@prisma/config, wasm). Install CLI for db push.
+USER root
+RUN npm install prisma@6.19.3 --no-save --ignore-scripts && \
+    chown -R nextjs:nodejs ./node_modules/prisma ./node_modules/@prisma ./node_modules/.bin 2>/dev/null || true
+USER nextjs
 
 RUN chmod +x ./docker-entrypoint.sh
 

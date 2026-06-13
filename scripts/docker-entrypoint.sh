@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-if [ -n "$DATABASE_URL" ] && [ -f "./node_modules/.bin/prisma" ]; then
+if [ -n "$DATABASE_URL" ] && command -v npx >/dev/null 2>&1; then
   echo "Applying database schema..."
-  ./node_modules/.bin/prisma db push --skip-generate || echo "DB push skipped/failed, continuing..."
+  npx prisma db push --skip-generate || echo "DB push skipped/failed, continuing..."
 fi
 
 exec "$@"
