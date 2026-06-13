@@ -1,14 +1,14 @@
-# TrendContent — GitHub Actions deploy
+# Trendix — GitHub Actions deploy
 
 **Regla del proyecto:** nunca buildear imágenes en el VPS. Todo pasa por GitHub Actions → GHCR → `docker service update`.
 
-Copiar a Settings → Secrets and variables → Actions
+Configurar en **Settings → Secrets and variables → Actions → Variables** (pestaña Variables):
 
-# VPS SSH
-VPS_HOST=123.456.789.0
-VPS_USER=root
-VPS_SSH_KEY=-----BEGIN OPENSSH PRIVATE KEY-----...
+| Variable | Ejemplo |
+|---|---|
+| `VPS_HOST` | `123.456.789.0` |
+| `VPS_USER` | `root` |
+| `VPS_SSH_KEY` | clave privada SSH completa (multilínea) |
+| `GHCR_TOKEN` | PAT con `read:packages` |
 
-# GitHub PAT con read:packages (para que el VPS pueda pull de GHCR)
-# Settings → Developer settings → Personal access tokens
-GHCR_TOKEN=ghp_...
+Nota: `GITHUB_TOKEN` lo provee GitHub automáticamente para push a GHCR. No hace falta configurarlo.

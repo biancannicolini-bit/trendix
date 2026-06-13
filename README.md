@@ -17,11 +17,11 @@ git remote add origin git@github.com:TU_USUARIO/TU_REPO.git
 git push -u origin main
 ```
 
-### 2. Secrets en GitHub
+### 2. Variables en GitHub
 
-En **Settings → Secrets and variables → Actions**, agregar:
+En **Settings → Secrets and variables → Actions → Variables**:
 
-| Secret | Descripción |
+| Variable | Descripción |
 |---|---|
 | `VPS_HOST` | IP del VPS |
 | `VPS_USER` | Usuario SSH (ej. `root`) |

@@ -35,4 +35,4 @@ git push main → GitHub Actions → ghcr.io → docker service update en VPS
 
 - No sugerir build local en VPS ni scripts que buildeen en el servidor
 - Documentar cambios como push a GitHub + redeploy automático
-- Secrets de producción viven en Portainer (stack env) y GitHub Actions (secrets), no en comandos manuales en VPS
+- Secrets de producción viven en Portainer (stack env) y GitHub Actions (variables), no en comandos manuales en VPS
