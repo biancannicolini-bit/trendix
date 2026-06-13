@@ -1,0 +1,94 @@
+version: "3.8"
+
+# TrendContent stack para Docker Swarm + Portainer + Traefik
+#
+# Antes de deployar, creá la red externa de Traefik (si no existe):
+#   docker network ls | grep traefik
+# Usá ese nombre en TRAEFIK_NETWORK (ej: traefik_public)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: trendcontent
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: trendcontent
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - trendcontent
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+
+  python:
+    image: ${REGISTRY}/trendix-python:${TAG}
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+    networks:
+      - trendcontent
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  app:
+    image: ${REGISTRY}/trendix-app:${TAG}
+    environment:
+      DATABASE_URL: postgresql://trendcontent:${DB_PASSWORD}@postgres:5432/trendcontent
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
+      NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER}
+      PYTHON_SERVICE_URL: http://python:8000
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      CRON_SECRET: ${CRON_SECRET}
+      ADMIN_EMAILS: ${ADMIN_EMAILS}
+    networks:
+      - trendcontent
+      - traefik_public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${TRAEFIK_NETWORK}
+        # HTTPS
+        - traefik.http.routers.trendix.rule=Host(`${TRAEFIK_DOMAIN}`)
+        - traefik.http.routers.trendix.entrypoints=${TRAEFIK_ENTRYPOINT}
+        - traefik.http.routers.trendix.tls=true
+        - traefik.http.routers.trendix.tls.certresolver=${TRAEFIK_CERT_RESOLVER}
+        - traefik.http.services.trendix.loadbalancer.server.port=3000
+        # HTTP → HTTPS
+        - traefik.http.routers.trendix-http.rule=Host(`${TRAEFIK_DOMAIN}`)
+        - traefik.http.routers.trendix-http.entrypoints=${TRAEFIK_HTTP_ENTRYPOINT}
+        - traefik.http.routers.trendix-http.middlewares=trendix-redirect-https
+        - traefik.http.middlewares.trendix-redirect-https.redirectscheme.scheme=https
+        - traefik.http.middlewares.trendix-redirect-https.redirectscheme.permanent=true
+
+networks:
+  trendcontent:
+    driver: overlay
+    attachable: true
+  traefik_public:
+    external: true
+    name: ${TRAEFIK_NETWORK}
+
+volumes:
+  postgres_data:

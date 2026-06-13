@@ -1,0 +1,38 @@
+---
+description: Deploy solo vía GitHub Actions — nunca buildear imágenes en el VPS
+alwaysApply: true
+---
+
+# Deploy: GitHub → GHCR → VPS
+
+Nunca crear, buildear ni pushear imágenes Docker en el VPS.
+
+## Flujo obligatorio
+
+```
+git push main → GitHub Actions → ghcr.io → docker service update en VPS
+```
+
+## Prohibido en el VPS
+
+- `docker build`
+- `docker compose build`
+- `./scripts/build-push.sh`
+- Crear imágenes manualmente en el servidor
+
+## Permitido en el VPS
+
+- Deploy inicial del stack en Portainer (pull de imágenes ya publicadas en GHCR)
+- `docker service update --image ...` (lo hace GitHub Actions automáticamente)
+- `docker stack deploy` solo la primera vez, usando imágenes de GHCR
+
+## Imágenes
+
+- Registry: `ghcr.io/<usuario-github>/trendix-app` y `trendix-python`
+- CI/CD: `.github/workflows/deploy.yml`
+
+## Al proponer cambios de infra
+
+- No sugerir build local en VPS ni scripts que buildeen en el servidor
+- Documentar cambios como push a GitHub + redeploy automático
+- Secrets de producción viven en Portainer (stack env) y GitHub Actions (secrets), no en comandos manuales en VPS

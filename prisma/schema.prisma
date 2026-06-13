@@ -1,0 +1,175 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String
+  passwordHash String
+  isAdmin      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profile          Profile?
+  subscription     Subscription?
+  calendars        ContentCalendar[]
+  aiUsageLogs      AiUsageLog[]
+  regenerationLogs RegenerationLog[]
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  niche       String
+  customNiche String?
+  audience    String
+  location    String
+  platforms   String[]
+  tone        String   @default("Educativo")
+  language    String   @default("Español")
+  frequency   Int      @default(5)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Subscription {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mpSubscriptionId String?   @unique
+  mpPayerId        String?
+
+  status           String    @default("pending")
+  // Status values: pending | authorized | paused | cancelled | cancelling | payment_failed
+
+  amount           Float     @default(15000)
+  currency         String    @default("ARS")
+
+  nextBillingDate  DateTime?
+  cancelAt         DateTime?
+  paymentFailedAt  DateTime?
+  gracePeriodEnd   DateTime?
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model ContentCalendar {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  weekStart     DateTime
+  generatedAt   DateTime  @default(now())
+  status        String    @default("generating")
+  // Status values: generating | ready | error
+
+  trendsUsed    String[]
+  errorMessage  String?
+  regeneratedAt DateTime?
+
+  tokensInput   Int?
+  tokensOutput  Int?
+  costUsd       Float?
+  modelUsed     String?
+  durationMs    Int?
+
+  posts         Post[]
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+}
+
+model Post {
+  id             String   @id @default(cuid())
+  calendarId     String
+  calendar       ContentCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  userId         String
+
+  day            String
+  platform       String
+  pillar         String
+  title          String
+  hook           String
+  script         Json
+  caption        String
+  hashtags       String[]
+  format         String
+  duration       String
+  productionNote String?
+
+  regenerationCount Int @default(0)
+  createdAt      DateTime @default(now())
+
+  @@index([calendarId])
+  @@index([userId])
+}
+
+model AiUsageLog {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calendarId   String?
+  postId       String?
+
+  callType     String
+  // call_types: weekly_generation | single_regen | full_week_regen
+  model        String
+  tokensInput  Int
+  tokensOutput Int
+  costUsd      Float
+
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model RegenerationLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String?
+  type      String
+  // types: full_week | single_post
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model GenerationError {
+  id           String    @id @default(cuid())
+  userId       String
+  calendarId   String?
+
+  errorType    String
+  // error_types: pytrends_failed | claude_failed | timeout | parse_error
+  errorMessage String
+  retryCount   Int       @default(0)
+  resolvedAt   DateTime?
+
+  createdAt    DateTime  @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+}
