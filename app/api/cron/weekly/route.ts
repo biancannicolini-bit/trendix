@@ -2,6 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendEmail, sendWhatsApp } from "@/lib/notifications";
 import { getNextWeekStart } from "@/lib/dates";
+import type { Profile, User } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+
+type UserWithProfile = User & { profile: Profile };
+
+type GeneratedPost = {
+  day: string;
+  platform: string;
+  pillar: string;
+  title: string;
+  hook: string;
+  script: Prisma.InputJsonValue;
+  caption: string;
+  hashtags: string[];
+  format: string;
+  duration: string;
+  production_note?: string | null;
+};
+
+type GenerateUsage = {
+  model: string;
+  tokens_input: number;
+  tokens_output: number;
+  cost_usd: number;
+  duration_ms: number;
+};
 
 export async function POST(req: NextRequest) {
   const auth = req.headers.get("Authorization");
@@ -10,7 +36,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const targetUserId = body.userId;
+  const targetUserId = body.userId as string | undefined;
 
   const users = await prisma.user.findMany({
     where: {
@@ -28,7 +54,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ processed: users.length, succeeded, failed });
 }
 
-async function processUser(user: any) {
+async function processUser(user: UserWithProfile) {
   const weekStart = getNextWeekStart();
 
   const existing = await prisma.contentCalendar.findUnique({
@@ -70,11 +96,15 @@ async function processUser(user: any) {
 
       if (!res.ok) throw new Error(`Python service ${res.status}`);
 
-      const { posts, trends_found, usage } = await res.json();
+      const { posts, trends_found, usage } = (await res.json()) as {
+        posts: GeneratedPost[];
+        trends_found: string[];
+        usage: GenerateUsage;
+      };
 
       await prisma.$transaction([
         prisma.post.createMany({
-          data: posts.map((p: any) => ({
+          data: posts.map((p) => ({
             calendarId: calendar.id,
             userId: user.id,
             day: p.day,
@@ -116,24 +146,25 @@ async function processUser(user: any) {
       ]);
 
       Promise.allSettled([
-        sendEmail(user.email, user.name, calendar.id),
+        sendEmail(user.email, user.name),
         sendWhatsApp(user.phone, user.name),
       ]);
 
       return;
-    } catch (e: any) {
+    } catch (e: unknown) {
       retries++;
+      const message = e instanceof Error ? e.message : "Unknown error";
       if (retries >= 3) {
         await prisma.contentCalendar.update({
           where: { id: calendar.id },
-          data: { status: "error", errorMessage: e.message },
+          data: { status: "error", errorMessage: message },
         });
         await prisma.generationError.create({
           data: {
             userId: user.id,
             calendarId: calendar.id,
             errorType: "generation_failed",
-            errorMessage: e.message,
+            errorMessage: message,
             retryCount: retries,
           },
         });

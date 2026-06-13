@@ -40,8 +40,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.subscriptionStatus = (user as any).subscriptionStatus;
-        token.isAdmin = (user as any).isAdmin;
+        token.subscriptionStatus = user.subscriptionStatus;
+        token.isAdmin = user.isAdmin;
       }
       return token;
     },

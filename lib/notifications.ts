@@ -16,11 +16,7 @@ function getTwilio() {
   return Twilio(sid, token);
 }
 
-export async function sendEmail(
-  email: string,
-  name: string,
-  _calendarId: string
-) {
+export async function sendEmail(email: string, name: string) {
   const resend = getResend();
   await resend.emails.send({
     from: `TrendContent <${process.env.RESEND_FROM_EMAIL}>`,
