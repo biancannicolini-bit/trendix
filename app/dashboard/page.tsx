@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
+import { LoadingState } from "@/components/ui/Spinner";
 
 type CalendarStatus = "generating" | "ready" | "error";
 
@@ -82,88 +85,93 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-10">
-        <p className="text-sm text-gray-600">Cargando tu calendario...</p>
-      </main>
+      <LoadingState
+        title="Cargando tu calendario"
+        description="Un momento mientras buscamos tu semana de contenido."
+      />
     );
   }
 
   if (!calendar) {
     return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-10">
-        <h1 className="text-2xl font-semibold">Preparando tu contenido</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Estamos generando tu primera semana. Si tarda más de unos minutos,
-          revisá que la suscripción esté activa.
-        </p>
-      </main>
+      <LoadingState
+        title="Armando tu primera semana"
+        description="Estamos generando contenido con trends reales. Si tarda más de unos minutos, revisá que la suscripción esté activa."
+      />
     );
   }
 
   if (calendar.status === "generating") {
     return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-10">
-        <h1 className="text-2xl font-semibold">Estamos generando tu semana</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Esto puede demorar unos minutos. Actualizamos automáticamente.
-        </p>
-      </main>
+      <LoadingState
+        title="Generando tu semana"
+        description="Esto puede demorar unos minutos. Actualizamos automáticamente."
+      />
     );
   }
 
   if (calendar.status === "error") {
     return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-10">
-        <h1 className="text-2xl font-semibold">Hubo un problema</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          {calendar.errorMessage ?? "No pudimos generar tu contenido."}
+      <div className="animate-fade-in-up space-y-3">
+        <h1 className="text-[22px] font-medium tracking-[-0.5px]">
+          Algo falló
+        </h1>
+        <p className="max-w-md text-sm text-text-secondary">
+          {calendar.errorMessage ??
+            "No pudimos generar tu contenido. Estamos en eso — te avisamos cuando esté listo."}
         </p>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-10">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Tu calendario semanal</h1>
-          <p className="text-sm text-gray-600">
-            Contenido basado en tendencias reales, listo para publicar.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/settings"
-          className="text-sm font-medium text-black"
-        >
-          Ajustes
-        </Link>
+    <div className="space-y-8">
+      <div className="animate-fade-in-up space-y-2">
+        <h1 className="text-[28px] font-medium tracking-[-0.5px]">
+          Tu calendario semanal
+        </h1>
+        <p className="text-sm text-text-secondary">
+          Contenido basado en tendencias reales, listo para grabar.
+        </p>
       </div>
 
-      <div className="mt-6 grid gap-4">
-        {DAY_ORDER.filter((day) => postsByDay[day]?.length).map((day) => (
-          <section
-            key={day}
-            className="rounded-lg border border-gray-200 bg-white p-4"
-          >
-            <h2 className="text-lg font-semibold">{day}</h2>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              {postsByDay[day].map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/dashboard/post/${post.id}`}
-                  className="rounded-md border border-gray-200 p-3 transition hover:border-black"
-                >
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
-                    {post.platform} · {post.pillar}
-                  </p>
-                  <p className="mt-2 text-sm font-medium">{post.title}</p>
-                  <p className="mt-1 text-xs text-gray-600">{post.hook}</p>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ))}
+      <div className="grid gap-4">
+        {DAY_ORDER.filter((day) => postsByDay[day]?.length).map(
+          (day, index) => (
+            <section
+              key={day}
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${index * 0.06}s` }}
+            >
+              <Card className="space-y-4">
+                <h2 className="text-lg font-medium tracking-[-0.5px]">{day}</h2>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {postsByDay[day].map((post) => (
+                    <Link
+                      key={post.id}
+                      href={`/dashboard/post/${post.id}`}
+                      className="group rounded-md border border-[var(--color-border-tertiary)] p-4 transition-all duration-200 hover:border-brand-pink/50 hover:shadow-[0_4px_20px_rgba(240,40,126,0.08)]"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge>{post.pillar}</Badge>
+                        <span className="text-[11px] text-text-tertiary">
+                          {post.platform}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm font-medium leading-snug text-text-primary">
+                        {post.title}
+                      </p>
+                      <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-text-secondary">
+                        {post.hook}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              </Card>
+            </section>
+          )
+        )}
       </div>
-    </main>
+    </div>
   );
 }

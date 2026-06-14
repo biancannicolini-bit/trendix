@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { COPY } from "@/lib/copy";
+import { BRAND } from "@/lib/brand";
 
 export default function OnboardingPaymentPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -32,33 +36,51 @@ export default function OnboardingPaymentPage() {
   };
 
   return (
-    <main className="flex-1 px-4 py-10">
-      <div className="mx-auto w-full max-w-md space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold">Activar suscripción</h1>
-          <p className="text-sm text-gray-600">
-            Pagás ARS $15.000/mes. Podés cancelar cuando quieras.
+    <div className="space-y-8 animate-fade-in-up">
+      <div className="space-y-2">
+        <h1 className="text-[28px] font-medium tracking-[-0.5px]">
+          Activar suscripción
+        </h1>
+        <p className="text-sm text-text-secondary">
+          Pagás {COPY.planPrice}. Cancelás cuando quieras.
+        </p>
+      </div>
+
+      <Card variant="featured" className="p-0">
+        <div className="space-y-2 p-6" style={{ background: BRAND.DARK }}>
+          <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-brand-pink">
+            Plan mensual
+          </p>
+          <p
+            className="text-[32px] font-medium tracking-[-1px]"
+            style={{ color: BRAND.LIGHT }}
+          >
+            {COPY.planPrice}
           </p>
         </div>
 
-        <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Método de pago</p>
-            <div className="rounded-md border border-gray-300 px-3 py-2 text-sm">
-              Mercado Pago
-            </div>
+        <div className="space-y-4 p-6">
+          <ul className="space-y-2">
+            {COPY.planFeatures.map((feature) => (
+              <li
+                key={feature}
+                className="flex items-start gap-2 text-sm text-text-secondary"
+              >
+                <span className="mt-0.5 text-brand-pink">✓</span>
+                {feature}
+              </li>
+            ))}
+          </ul>
+
+          <div className="rounded-md border border-[var(--color-border-tertiary)] px-3 py-2.5 text-sm text-text-secondary">
+            Mercado Pago
           </div>
 
-          <button
-            type="button"
-            onClick={handleCheckout}
-            disabled={isLoading}
-            className="w-full rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-          >
+          <Button type="button" onClick={handleCheckout} disabled={isLoading}>
             {isLoading ? "Redirigiendo..." : "Continuar con Mercado Pago"}
-          </button>
+          </Button>
         </div>
-      </div>
-    </main>
+      </Card>
+    </div>
   );
 }

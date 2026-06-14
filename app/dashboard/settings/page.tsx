@@ -1,11 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Field, Input, Select } from "@/components/ui/Input";
+import { PlatformToggle } from "@/components/ui/PlatformToggle";
 
 const schema = z
   .object({
@@ -168,211 +171,141 @@ export default function SettingsPage() {
     ["authorized", "payment_failed"].includes(subscription.status);
 
   return (
-    <main className="mx-auto w-full max-w-lg px-4 py-10">
-      <Link href="/dashboard" className="text-sm font-medium text-gray-600">
-        ← Volver al calendario
-      </Link>
+    <div className="mx-auto max-w-lg space-y-8 animate-fade-in-up">
+      <div className="space-y-2">
+        <h1 className="text-[28px] font-medium tracking-[-0.5px]">Ajustes</h1>
+        <p className="text-sm text-text-secondary">
+          Cambios de perfil aplican al próximo viernes.
+        </p>
+      </div>
 
-      <div className="mt-6 space-y-8">
-        <section className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <div>
-            <h1 className="text-2xl font-semibold">Ajustes</h1>
-            <p className="text-sm text-gray-600">
-              Cambios de perfil aplican al próximo viernes.
-            </p>
+      <Card>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <Field label="Nicho" error={errors.niche?.message}>
+            <Select {...register("niche")}>
+              <option value="">Seleccioná un nicho</option>
+              {NICHES.map((niche) => (
+                <option key={niche} value={niche}>
+                  {niche === "otro" ? "Otro" : niche}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          {selectedNiche === "otro" && (
+            <Field label="Tu nicho" error={errors.customNiche?.message}>
+              <Input type="text" {...register("customNiche")} />
+            </Field>
+          )}
+
+          <Field label="Audiencia" error={errors.audience?.message}>
+            <Input type="text" {...register("audience")} />
+          </Field>
+
+          <Field label="Ubicación" error={errors.location?.message}>
+            <Input type="text" {...register("location")} />
+          </Field>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-text-primary">Plataformas</p>
+            <PlatformToggle
+              options={PLATFORMS}
+              selected={selectedPlatforms}
+              onToggle={togglePlatform}
+            />
+            {errors.platforms && (
+              <p className="text-xs text-red-600">
+                {errors.platforms.message as string}
+              </p>
+            )}
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Nicho</label>
-              <select
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                {...register("niche")}
-              >
-                <option value="">Seleccioná un nicho</option>
-                {NICHES.map((niche) => (
-                  <option key={niche} value={niche}>
-                    {niche === "otro" ? "Otro" : niche}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Tono">
+              <Select {...register("tone")}>
+                {TONES.map((tone) => (
+                  <option key={tone} value={tone}>
+                    {tone}
                   </option>
                 ))}
-              </select>
-              {errors.niche && (
-                <p className="text-xs text-red-600">{errors.niche.message}</p>
-              )}
-            </div>
+              </Select>
+            </Field>
 
-            {selectedNiche === "otro" && (
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Tu nicho</label>
-                <input
-                  type="text"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  {...register("customNiche")}
-                />
-                {errors.customNiche && (
-                  <p className="text-xs text-red-600">
-                    {errors.customNiche.message}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Audiencia</label>
-              <input
-                type="text"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                {...register("audience")}
-              />
-              {errors.audience && (
-                <p className="text-xs text-red-600">
-                  {errors.audience.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Ubicación</label>
-              <input
-                type="text"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                {...register("location")}
-              />
-              {errors.location && (
-                <p className="text-xs text-red-600">
-                  {errors.location.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Plataformas</p>
-              <div className="flex flex-wrap gap-2">
-                {PLATFORMS.map((platform) => (
-                  <button
-                    type="button"
-                    key={platform}
-                    onClick={() => togglePlatform(platform)}
-                    className={`rounded-full border px-3 py-1 text-sm ${
-                      selectedPlatforms.includes(platform)
-                        ? "border-black bg-black text-white"
-                        : "border-gray-300 text-gray-700"
-                    }`}
-                  >
-                    {platform}
-                  </button>
+            <Field label="Idioma">
+              <Select {...register("language")}>
+                {LANGUAGES.map((language) => (
+                  <option key={language} value={language}>
+                    {language}
+                  </option>
                 ))}
-              </div>
-              {errors.platforms && (
-                <p className="text-xs text-red-600">
-                  {errors.platforms.message as string}
-                </p>
-              )}
-            </div>
+              </Select>
+            </Field>
+          </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Tono</label>
-                <select
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  {...register("tone")}
-                >
-                  {TONES.map((tone) => (
-                    <option key={tone} value={tone}>
-                      {tone}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <Field
+            label="Frecuencia (posts por semana)"
+            error={errors.frequency?.message}
+          >
+            <Input
+              type="number"
+              min={1}
+              max={7}
+              {...register("frequency", { valueAsNumber: true })}
+            />
+          </Field>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Idioma</label>
-                <select
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  {...register("language")}
-                >
-                  {LANGUAGES.map((language) => (
-                    <option key={language} value={language}>
-                      {language}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Guardando..." : "Guardar cambios"}
+          </Button>
+        </form>
+      </Card>
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium">
-                Frecuencia (posts por semana)
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={7}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                {...register("frequency", { valueAsNumber: true })}
-              />
-              {errors.frequency && (
-                <p className="text-xs text-red-600">
-                  {errors.frequency.message}
-                </p>
-              )}
-            </div>
+      <Card className="space-y-4">
+        <h2 className="text-lg font-medium tracking-[-0.5px]">Suscripción</h2>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-            >
-              {isSubmitting ? "Guardando..." : "Guardar cambios"}
-            </button>
-          </form>
-        </section>
-
-        <section className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-semibold">Suscripción</h2>
-
-          {subscription ? (
-            <div className="space-y-2 text-sm text-gray-700">
+        {subscription ? (
+          <div className="space-y-2 text-sm text-text-secondary">
+            <p>
+              <span className="font-medium text-text-primary">Estado:</span>{" "}
+              {STATUS_LABELS[subscription.status] ?? subscription.status}
+            </p>
+            <p>
+              <span className="font-medium text-text-primary">Plan:</span>{" "}
+              {subscription.currency} ${subscription.amount.toLocaleString()}
+              /mes
+            </p>
+            {subscription.nextBillingDate && (
               <p>
-                <span className="font-medium">Estado:</span>{" "}
-                {STATUS_LABELS[subscription.status] ?? subscription.status}
+                <span className="font-medium text-text-primary">
+                  Próximo cobro:
+                </span>{" "}
+                {new Date(subscription.nextBillingDate).toLocaleDateString(
+                  "es-AR"
+                )}
               </p>
-              <p>
-                <span className="font-medium">Plan:</span>{" "}
-                {subscription.currency} ${subscription.amount.toLocaleString()}
-                /mes
+            )}
+            {subscription.cancelAt && subscription.status === "cancelling" && (
+              <p className="text-amber-700">
+                Acceso hasta{" "}
+                {new Date(subscription.cancelAt).toLocaleDateString("es-AR")}
               </p>
-              {subscription.nextBillingDate && (
-                <p>
-                  <span className="font-medium">Próximo cobro:</span>{" "}
-                  {new Date(subscription.nextBillingDate).toLocaleDateString(
-                    "es-AR"
-                  )}
-                </p>
-              )}
-              {subscription.cancelAt && subscription.status === "cancelling" && (
-                <p className="text-amber-700">
-                  Acceso hasta{" "}
-                  {new Date(subscription.cancelAt).toLocaleDateString("es-AR")}
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-600">Sin suscripción activa.</p>
-          )}
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-text-secondary">Sin suscripción activa.</p>
+        )}
 
-          {canCancel && (
-            <button
-              type="button"
-              onClick={handleCancel}
-              disabled={cancelling}
-              className="w-full rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 disabled:opacity-60"
-            >
-              {cancelling ? "Cancelando..." : "Cancelar suscripción"}
-            </button>
-          )}
-        </section>
-      </div>
-    </main>
+        {canCancel && (
+          <Button
+            type="button"
+            variant="danger"
+            onClick={handleCancel}
+            disabled={cancelling}
+          >
+            {cancelling ? "Cancelando..." : "Cancelar suscripción"}
+          </Button>
+        )}
+      </Card>
+    </div>
   );
 }

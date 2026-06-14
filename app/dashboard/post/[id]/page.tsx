@@ -2,6 +2,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
+import { HookBar } from "@/components/ui/HookBar";
+import { BRAND } from "@/lib/brand";
 
 type ScriptSection = {
   section: string;
@@ -30,38 +34,49 @@ export default async function PostDetailPage({
   const script = post.script as ScriptSection[];
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-10">
-      <Link href="/dashboard" className="text-sm font-medium text-gray-600">
+    <div className="mx-auto max-w-3xl space-y-6 animate-fade-in-up">
+      <Link
+        href="/dashboard"
+        className="inline-flex text-sm font-medium text-text-secondary transition-colors hover:text-brand-pink"
+      >
         ← Volver al calendario
       </Link>
 
-      <div className="mt-6 space-y-6 rounded-lg border border-gray-200 bg-white p-6">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-gray-500">
-            {post.platform} · {post.pillar}
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold">{post.title}</h1>
-          <p className="mt-2 text-sm text-gray-600">{post.hook}</p>
+      <Card className="space-y-8">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge>{post.pillar}</Badge>
+            <span className="text-[11px] text-text-tertiary">{post.platform}</span>
+            {post.format && (
+              <span className="text-[11px] text-text-tertiary">
+                · {post.format}
+              </span>
+            )}
+          </div>
+          <h1 className="text-[28px] font-medium tracking-[-0.5px] leading-tight">
+            {post.title}
+          </h1>
+          <HookBar>{post.hook}</HookBar>
         </div>
 
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Guion</h2>
-          <div className="space-y-4">
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium tracking-[-0.5px]">Guion</h2>
+          <div className="space-y-3">
             {script.map((section, index) => (
               <div
                 key={index}
-                className="rounded-md border border-gray-200 p-3"
+                className="rounded-md border border-[var(--color-border-tertiary)] p-4 transition-colors duration-200"
               >
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                  <span className="font-semibold text-gray-700">
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-text-tertiary">
+                  <span className="font-medium text-text-secondary">
                     {section.section}
                   </span>
                   <span>{section.timing}</span>
                   <span>· {section.direction}</span>
                 </div>
-                <ul className="mt-2 space-y-1 text-sm text-gray-800">
+                <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-text-primary">
                   {section.lines?.map((line, i) => (
-                    <li key={i}>• {line}</li>
+                    <li key={i}>{line}</li>
                   ))}
                 </ul>
               </div>
@@ -69,20 +84,21 @@ export default async function PostDetailPage({
           </div>
         </section>
 
-        <section className="space-y-2">
-          <h2 className="text-lg font-semibold">Caption</h2>
-          <div className="whitespace-pre-line rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
+        <section className="space-y-3">
+          <h2 className="text-lg font-medium tracking-[-0.5px]">Caption</h2>
+          <div className="whitespace-pre-line rounded-md border border-[var(--color-border-tertiary)] bg-bg-secondary p-4 text-sm leading-relaxed text-text-primary">
             {post.caption}
           </div>
         </section>
 
-        <section className="space-y-2">
-          <h2 className="text-lg font-semibold">Hashtags</h2>
+        <section className="space-y-3">
+          <h2 className="text-lg font-medium tracking-[-0.5px]">Hashtags</h2>
           <div className="flex flex-wrap gap-2">
             {post.hashtags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
+                className="rounded-full px-3 py-1 text-xs text-text-secondary"
+                style={{ background: BRAND.LIGHT }}
               >
                 {tag}
               </span>
@@ -92,11 +108,15 @@ export default async function PostDetailPage({
 
         {post.productionNote && (
           <section className="space-y-2">
-            <h2 className="text-lg font-semibold">Nota de producción</h2>
-            <p className="text-sm text-gray-700">{post.productionNote}</p>
+            <h2 className="text-lg font-medium tracking-[-0.5px]">
+              Nota de producción
+            </h2>
+            <p className="text-sm leading-relaxed text-text-secondary">
+              {post.productionNote}
+            </p>
           </section>
         )}
-      </div>
-    </main>
+      </Card>
+    </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/Card";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function OnboardingGeneratingPage() {
   const router = useRouter();
@@ -33,16 +35,20 @@ export default function OnboardingGeneratingPage() {
   }, [router]);
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-4 py-16">
-      <div className="w-full max-w-md space-y-4 rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
-        <h1 className="text-2xl font-semibold">Preparando tu contenido</h1>
-        <p className="text-sm text-gray-600">
-          {status === "generating"
-            ? "Estamos generando tu primera semana con tendencias reales. Esto puede demorar unos minutos."
-            : "Procesando..."}
-        </p>
-        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
-      </div>
-    </main>
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <Card className="w-full max-w-md space-y-5 text-center animate-fade-in-up">
+        <Spinner className="mx-auto" />
+        <div className="space-y-2">
+          <h1 className="text-[22px] font-medium tracking-[-0.5px]">
+            Preparando tu contenido
+          </h1>
+          <p className="text-sm leading-relaxed text-text-secondary">
+            {status === "generating"
+              ? "Estamos generando tu primera semana con trends reales. Esto puede demorar unos minutos."
+              : "Procesando..."}
+          </p>
+        </div>
+      </Card>
+    </div>
   );
 }
