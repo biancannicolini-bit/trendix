@@ -28,11 +28,11 @@ export async function POST() {
     where: {
       userId: user.id,
       weekStart: { in: weekStarts },
-      status: { in: ["ready", "generating"] },
     },
+    orderBy: { weekStart: "desc" },
   });
 
-  if (existing) {
+  if (existing?.status === "ready" || existing?.status === "generating") {
     return NextResponse.json({ started: false, status: existing.status });
   }
 

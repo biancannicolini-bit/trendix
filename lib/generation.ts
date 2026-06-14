@@ -88,7 +88,14 @@ export async function processUser(user: UserWithProfile) {
         signal: AbortSignal.timeout(120_000),
       });
 
-      if (!res.ok) throw new Error(`Python service ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const detail =
+          typeof body.detail === "string"
+            ? body.detail
+            : `Python service ${res.status}`;
+        throw new Error(detail);
+      }
 
       const { posts, trends_found, usage } = (await res.json()) as {
         posts: GeneratedPost[];

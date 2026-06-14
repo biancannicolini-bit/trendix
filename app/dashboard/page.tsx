@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LoadingState } from "@/components/ui/Spinner";
 
@@ -42,6 +43,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [calendar, setCalendar] = useState<CalendarResponse["calendar"]>(null);
   const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState(false);
   const kickoffAttempted = useRef(false);
 
   useEffect(() => {
@@ -73,6 +75,12 @@ export default function DashboardPage() {
       })
       .catch(() => {});
   }, [loading, calendar, router]);
+
+  const retryGeneration = async () => {
+    setRetrying(true);
+    await fetch("/api/generation/start", { method: "POST" }).catch(() => {});
+    router.push("/onboarding/generating");
+  };
 
   const postsByDay = useMemo(() => {
     if (!calendar?.posts) return {};
@@ -112,14 +120,24 @@ export default function DashboardPage() {
 
   if (calendar.status === "error") {
     return (
-      <div className="animate-fade-in-up space-y-3">
-        <h1 className="text-[22px] font-medium tracking-[-0.5px]">
-          Algo falló
-        </h1>
-        <p className="max-w-md text-sm text-text-secondary">
-          {calendar.errorMessage ??
-            "No pudimos generar tu contenido. Estamos en eso — te avisamos cuando esté listo."}
-        </p>
+      <div className="animate-fade-in-up space-y-4">
+        <div className="space-y-3">
+          <h1 className="text-[22px] font-medium tracking-[-0.5px]">
+            Algo falló
+          </h1>
+          <p className="max-w-md text-sm text-text-secondary">
+            {calendar.errorMessage ??
+              "No pudimos generar tu contenido. Estamos en eso — te avisamos cuando esté listo."}
+          </p>
+        </div>
+        <Button
+          type="button"
+          className="max-w-xs"
+          disabled={retrying}
+          onClick={retryGeneration}
+        >
+          {retrying ? "Reintentando..." : "Reintentar generación"}
+        </Button>
       </div>
     );
   }

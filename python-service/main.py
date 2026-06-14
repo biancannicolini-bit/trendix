@@ -2,14 +2,20 @@ from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
+import logging
 import os
+import traceback
 from dotenv import load_dotenv
 from trends import get_trending_topics
 from generator import generate_calendar
 
 load_dotenv()
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("scripvox-python")
+
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 
 app = FastAPI()
@@ -38,28 +44,43 @@ async def generate(req: GenerateRequest, authorization: Optional[str] = Header(N
     if authorization != f"Bearer {INTERNAL_API_KEY}":
         raise HTTPException(status_code=401, detail="Unauthorized")
 
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY no configurada en el servicio Python",
+        )
+
     niche = req.custom_niche if req.niche == "otro" else req.niche
 
-    trends = await get_trending_topics(niche, req.location)
+    try:
+        trends = await get_trending_topics(niche, req.location)
 
-    result = await generate_calendar(
-        niche=niche,
-        audience=req.audience,
-        location=req.location,
-        platforms=req.platforms,
-        tone=req.tone,
-        language=req.language,
-        frequency=req.frequency,
-        trends=trends,
-    )
+        result = await generate_calendar(
+            niche=niche,
+            audience=req.audience,
+            location=req.location,
+            platforms=req.platforms,
+            tone=req.tone,
+            language=req.language,
+            frequency=req.frequency,
+            trends=trends,
+        )
 
-    return {
-        "posts": result["posts"],
-        "trends_found": trends,
-        "usage": result["usage"],
-    }
+        return {
+            "posts": result["posts"],
+            "trends_found": trends,
+            "usage": result["usage"],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Generate failed: %s\n%s", e, traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "anthropic_configured": bool(ANTHROPIC_API_KEY),
+    }

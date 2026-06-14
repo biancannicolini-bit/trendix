@@ -1,18 +1,24 @@
 import anthropic
+import asyncio
 import json
+import os
 import re
 import time
 from cost_tracker import calculate_cost
 
-MODEL = "claude-haiku-4-5-20251001"
+DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+MODEL = os.getenv("ANTHROPIC_MODEL", DEFAULT_MODEL)
 
 _client: anthropic.Anthropic | None = None
 
 
 def _get_client() -> anthropic.Anthropic:
     global _client
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY no configurada")
     if _client is None:
-        _client = anthropic.Anthropic()
+        _client = anthropic.Anthropic(api_key=api_key)
     return _client
 
 
@@ -31,7 +37,7 @@ def build_prompt(
 TENDENCIAS REALES encontradas esta semana en {niche} / {location}:
 {trends_str}
 
-Buscá en la web información actualizada sobre estos temas para incluir datos, precios y estadísticas reales y recientes en los guiones.
+Usá estas tendencias y tu conocimiento de {location} para incluir datos y referencias actuales en los guiones.
 
 Perfil del creador:
 - Nicho: {niche}
@@ -70,6 +76,25 @@ CRÍTICO: Devolvé ÚNICAMENTE un array JSON válido. Sin markdown, sin explicac
 Todo en {language}. Datos reales y actuales de {location}. Guiones listos para grabar."""
 
 
+def _call_anthropic(prompt: str):
+    return _get_client().messages.create(
+        model=MODEL,
+        max_tokens=8000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+
+def _extract_posts(text: str) -> list:
+    match = re.search(r"\[[\s\S]*\]", text)
+    if not match:
+        raise ValueError(f"No se encontró JSON en la respuesta. Texto: {text[:500]}")
+
+    posts = json.loads(match.group(0))
+    if not isinstance(posts, list) or len(posts) == 0:
+        raise ValueError("La respuesta no contiene posts válidos")
+    return posts
+
+
 async def generate_calendar(
     niche, audience, location, platforms, tone, language, frequency, trends
 ) -> dict:
@@ -78,12 +103,8 @@ async def generate_calendar(
     )
     start = time.time()
 
-    response = _get_client().messages.create(
-        model=MODEL,
-        max_tokens=8000,
-        tools=[{"type": "web_search_20250305", "name": "web_search"}],
-        messages=[{"role": "user", "content": prompt}],
-    )
+    loop = asyncio.get_event_loop()
+    response = await loop.run_in_executor(None, _call_anthropic, prompt)
 
     duration_ms = int((time.time() - start) * 1000)
     tokens_in = response.usage.input_tokens
@@ -91,11 +112,12 @@ async def generate_calendar(
     cost = calculate_cost(MODEL, tokens_in, tokens_out)
 
     text = "".join(b.text for b in response.content if b.type == "text")
-    match = re.search(r"\[[\s\S]*\]", text)
-    if not match:
-        raise ValueError(f"No se encontró JSON en la respuesta. Texto: {text[:500]}")
+    if not text.strip():
+        raise ValueError(
+            "Claude no devolvió texto. Revisá el modelo o la API key."
+        )
 
-    posts = json.loads(match.group(0))
+    posts = _extract_posts(text)
 
     return {
         "posts": posts,
