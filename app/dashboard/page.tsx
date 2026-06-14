@@ -119,27 +119,7 @@ export default function DashboardPage() {
   }
 
   if (calendar.status === "error") {
-    return (
-      <div className="animate-fade-in-up space-y-4">
-        <div className="space-y-3">
-          <h1 className="text-[22px] font-medium tracking-[-0.5px]">
-            Algo falló
-          </h1>
-          <p className="max-w-md text-sm text-text-secondary">
-            {calendar.errorMessage ??
-              "No pudimos generar tu contenido. Estamos en eso — te avisamos cuando esté listo."}
-          </p>
-        </div>
-        <Button
-          type="button"
-          className="max-w-xs"
-          disabled={retrying}
-          onClick={retryGeneration}
-        >
-          {retrying ? "Reintentando..." : "Reintentar generación"}
-        </Button>
-      </div>
-    );
+    return <GenerationErrorPanel calendar={calendar} onRetry={retryGeneration} retrying={retrying} />;
   }
 
   return (
@@ -190,6 +170,78 @@ export default function DashboardPage() {
           )
         )}
       </div>
+    </div>
+  );
+}
+
+type DiagnoseResponse = {
+  checks: Array<{ name: string; ok: boolean; error?: string; anthropic_configured?: boolean }>;
+  lastError: { errorMessage: string; createdAt: string } | null;
+  appConfigured: { pythonUrl: string; hasInternalKey: boolean };
+};
+
+function GenerationErrorPanel({
+  calendar,
+  onRetry,
+  retrying,
+}: {
+  calendar: NonNullable<CalendarResponse["calendar"]>;
+  onRetry: () => void;
+  retrying: boolean;
+}) {
+  const [diagnose, setDiagnose] = useState<DiagnoseResponse | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/generation/diagnose")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setDiagnose(data))
+      .catch(() => {});
+  }, []);
+
+  const pythonCheck = diagnose?.checks.find((c) => c.name === "python_health");
+  const detail =
+    calendar.errorMessage ??
+    diagnose?.lastError?.errorMessage ??
+    "No pudimos generar tu contenido.";
+
+  return (
+    <div className="animate-fade-in-up max-w-lg space-y-5">
+      <div className="space-y-3">
+        <h1 className="text-[22px] font-medium tracking-[-0.5px]">Algo falló</h1>
+        <p className="text-sm leading-relaxed text-text-secondary">{detail}</p>
+      </div>
+
+      {diagnose && (
+        <Card className="space-y-3 bg-bg-secondary text-[13px]">
+          <p className="font-medium text-text-primary">Diagnóstico rápido</p>
+          <ul className="space-y-1.5 text-text-secondary">
+            <li>
+              Python:{" "}
+              {pythonCheck?.ok ? "conectado" : "no responde"}
+              {pythonCheck?.anthropic_configured === false &&
+                " · API key de Anthropic faltante en trendix_python"}
+            </li>
+            <li>
+              App → Python:{" "}
+              {diagnose.appConfigured.hasInternalKey
+                ? "configurada"
+                : "INTERNAL_API_KEY faltante en trendix_app"}
+            </li>
+            {pythonCheck?.error && (
+              <li className="break-words text-red-700">{pythonCheck.error}</li>
+            )}
+          </ul>
+        </Card>
+      )}
+
+      <Button
+        type="button"
+        className="max-w-xs"
+        disabled={retrying}
+        onClick={onRetry}
+      >
+        {retrying ? "Reintentando..." : "Reintentar generación"}
+      </Button>
     </div>
   );
 }

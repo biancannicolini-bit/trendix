@@ -77,11 +77,22 @@ Todo en {language}. Datos reales y actuales de {location}. Guiones listos para g
 
 
 def _call_anthropic(prompt: str):
-    return _get_client().messages.create(
-        model=MODEL,
-        max_tokens=8000,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    try:
+        return _get_client().messages.create(
+            model=MODEL,
+            max_tokens=8000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except anthropic.AuthenticationError:
+        raise RuntimeError(
+            "API key de Anthropic inválida. Revisá ANTHROPIC_API_KEY en trendix_python."
+        ) from None
+    except anthropic.NotFoundError:
+        raise RuntimeError(
+            f"Modelo {MODEL} no disponible. Configurá ANTHROPIC_MODEL con un modelo válido."
+        ) from None
+    except anthropic.APIError as e:
+        raise RuntimeError(f"Error de Anthropic: {e.message}") from e
 
 
 def _extract_posts(text: str) -> list:

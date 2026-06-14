@@ -23,9 +23,11 @@ export default function OnboardingGeneratingPage() {
 
       if (calendar.status === "ready") {
         router.push("/dashboard");
+        return;
       }
       if (calendar.status === "error") {
         router.push("/dashboard");
+        return;
       }
     };
 

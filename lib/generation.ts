@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { sendEmail, sendWhatsApp } from "@/lib/notifications";
 import { getCurrentWeekStart, getNextWeekStart } from "@/lib/dates";
 import { isAdminEmail } from "@/lib/admin";
+import { parseFetchError, parseServiceError } from "@/lib/service-errors";
 import type { Profile, Subscription, User } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 
@@ -66,7 +67,14 @@ export async function processUser(user: UserWithProfile) {
     await prisma.post.deleteMany({ where: { calendarId: calendar.id } });
   }
 
+  await prisma.contentCalendar.update({
+    where: { id: calendar.id },
+    data: { status: "generating", errorMessage: null },
+  });
+
   let retries = 0;
+  const retryDelaysMs = [0, 5_000, 10_000];
+
   while (retries < 3) {
     try {
       const res = await fetch(`${process.env.PYTHON_SERVICE_URL}/generate`, {
@@ -89,12 +97,7 @@ export async function processUser(user: UserWithProfile) {
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        const detail =
-          typeof body.detail === "string"
-            ? body.detail
-            : `Python service ${res.status}`;
-        throw new Error(detail);
+        throw new Error(await parseServiceError(res));
       }
 
       const { posts, trends_found, usage } = (await res.json()) as {
@@ -154,7 +157,10 @@ export async function processUser(user: UserWithProfile) {
       return;
     } catch (e: unknown) {
       retries++;
-      const message = e instanceof Error ? e.message : "Unknown error";
+      const message = parseFetchError(e);
+      console.error(
+        `[generation] user=${user.id} attempt=${retries}/3 error=${message}`
+      );
       if (retries >= 3) {
         await prisma.contentCalendar.update({
           where: { id: calendar.id },
@@ -171,7 +177,9 @@ export async function processUser(user: UserWithProfile) {
         });
         throw e;
       }
-      await new Promise((r) => setTimeout(r, 60_000 * retries));
+      await new Promise((r) =>
+        setTimeout(r, retryDelaysMs[retries] ?? 10_000)
+      );
     }
   }
 }

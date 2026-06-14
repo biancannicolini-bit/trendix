@@ -36,6 +36,13 @@ export async function POST() {
     return NextResponse.json({ started: false, status: existing.status });
   }
 
+  if (existing?.status === "error") {
+    await prisma.contentCalendar.update({
+      where: { id: existing.id },
+      data: { status: "generating", errorMessage: null },
+    });
+  }
+
   triggerUserGeneration(user.id);
   return NextResponse.json({ started: true });
 }
