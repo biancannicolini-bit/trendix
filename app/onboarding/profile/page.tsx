@@ -92,7 +92,8 @@ export default function OnboardingProfilePage() {
       return;
     }
 
-    router.push("/onboarding/payment");
+    const data = await res.json();
+    router.push(data.nextUrl ?? "/onboarding/payment");
   };
 
   return (

@@ -40,7 +40,7 @@ services:
   app:
     image: ${REGISTRY}/trendix-app:${TAG}
     environment:
-      DATABASE_URL: postgresql://trendcontent:${DB_PASSWORD}@postgres:5432/trendcontent
+      DB_PASSWORD: ${DB_PASSWORD}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
       NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL}

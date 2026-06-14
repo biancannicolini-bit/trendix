@@ -23,7 +23,7 @@ export const MercadoPagoProvider: PaymentProvider = {
           transaction_amount: 15000,
           currency_id: "ARS",
         },
-        back_url: `${process.env.NEXT_PUBLIC_URL}/dashboard?payment=success`,
+        back_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/generating`,
         status: "pending",
       },
     });

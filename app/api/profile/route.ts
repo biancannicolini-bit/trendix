@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { canGenerateForUser, triggerUserGeneration } from "@/lib/generation";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -16,7 +17,22 @@ export async function POST(req: NextRequest) {
     update: data,
   });
 
-  return NextResponse.json({ profile });
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { subscription: true },
+  });
+
+  const readyToGenerate = user && canGenerateForUser(user);
+
+  if (readyToGenerate) {
+    triggerUserGeneration(session.user.id);
+    return NextResponse.json({
+      profile,
+      nextUrl: "/onboarding/generating",
+    });
+  }
+
+  return NextResponse.json({ profile, nextUrl: "/onboarding/payment" });
 }
 
 export async function GET() {

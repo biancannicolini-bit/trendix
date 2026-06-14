@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { isAdminEmail } from "@/lib/admin";
 import { NextResponse } from "next/server";
 
 export default auth((req) => {
@@ -21,10 +22,18 @@ export default auth((req) => {
 
   const subStatus = session.user.subscriptionStatus;
   const isOnboarding = pathname.startsWith("/onboarding");
-  const isAdmin = pathname.startsWith("/admin");
+  const isAdminRoute = pathname.startsWith("/admin");
   const isDashboard = pathname.startsWith("/dashboard");
+  const adminUser = isAdminEmail(session.user.email);
 
-  if (isAdmin) return NextResponse.next();
+  if (isAdminRoute) return NextResponse.next();
+
+  if (adminUser) {
+    if (pathname === "/onboarding/payment") {
+      return NextResponse.redirect(new URL("/onboarding/generating", req.url));
+    }
+    return NextResponse.next();
+  }
 
   if (isDashboard && subStatus === "none") {
     return NextResponse.redirect(new URL("/onboarding/profile", req.url));

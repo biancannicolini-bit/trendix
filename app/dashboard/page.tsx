@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type CalendarStatus = "generating" | "ready" | "error";
 
@@ -35,8 +36,10 @@ const DAY_ORDER = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [calendar, setCalendar] = useState<CalendarResponse["calendar"]>(null);
   const [loading, setLoading] = useState(true);
+  const kickoffAttempted = useRef(false);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -54,6 +57,19 @@ export default function DashboardPage() {
     fetchCalendar();
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (loading || calendar || kickoffAttempted.current) return;
+    kickoffAttempted.current = true;
+
+    void fetch("/api/generation/start", { method: "POST" })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.started) router.push("/onboarding/generating");
+      })
+      .catch(() => {});
+  }, [loading, calendar, router]);
 
   const postsByDay = useMemo(() => {
     if (!calendar?.posts) return {};
@@ -75,9 +91,10 @@ export default function DashboardPage() {
   if (!calendar) {
     return (
       <main className="mx-auto w-full max-w-5xl px-4 py-10">
-        <h1 className="text-2xl font-semibold">Todavía no hay contenido</h1>
+        <h1 className="text-2xl font-semibold">Preparando tu contenido</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Vamos a generarlo el próximo viernes por la tarde.
+          Estamos generando tu primera semana. Si tarda más de unos minutos,
+          revisá que la suscripción esté activa.
         </p>
       </main>
     );

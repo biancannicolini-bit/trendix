@@ -9,6 +9,8 @@ export default function OnboardingGeneratingPage() {
 
   useEffect(() => {
     const poll = async () => {
+      await fetch("/api/generation/start", { method: "POST" }).catch(() => {});
+
       const res = await fetch("/api/calendar/current");
       if (!res.ok) return;
 

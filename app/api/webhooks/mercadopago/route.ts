@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { triggerUserGeneration } from "@/lib/generation";
 import MercadoPagoConfig, { PreApproval } from "mercadopago";
 
 function getMp() {
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (status === "authorized") {
-      await triggerGeneration(userId);
+      triggerUserGeneration(userId);
     }
 
     return NextResponse.json({ ok: true });
@@ -60,15 +61,4 @@ export async function POST(req: NextRequest) {
     console.error("MP webhook error:", e);
     return NextResponse.json({ error: "Webhook error" }, { status: 500 });
   }
-}
-
-async function triggerGeneration(userId: string) {
-  fetch(`${process.env.NEXT_PUBLIC_URL}/api/cron/weekly`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.CRON_SECRET}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ userId }),
-  });
 }
