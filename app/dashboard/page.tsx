@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LoadingState } from "@/components/ui/Spinner";
+import { humanizeGenerationError } from "@/lib/service-errors";
 
 type CalendarStatus = "generating" | "ready" | "error";
 
@@ -199,10 +200,11 @@ function GenerationErrorPanel({
   }, []);
 
   const pythonCheck = diagnose?.checks.find((c) => c.name === "python_health");
-  const detail =
+  const detail = humanizeGenerationError(
     calendar.errorMessage ??
-    diagnose?.lastError?.errorMessage ??
-    "No pudimos generar tu contenido.";
+      diagnose?.lastError?.errorMessage ??
+      "No pudimos generar tu contenido."
+  );
 
   return (
     <div className="animate-fade-in-up max-w-lg space-y-5">

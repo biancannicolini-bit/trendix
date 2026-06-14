@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { sendEmail, sendWhatsApp } from "@/lib/notifications";
 import { getCurrentWeekStart, getNextWeekStart } from "@/lib/dates";
 import { isAdminEmail } from "@/lib/admin";
-import { parseFetchError, parseServiceError } from "@/lib/service-errors";
+import { parseFetchError, parseServiceError, humanizeGenerationError } from "@/lib/service-errors";
 import type { Profile, Subscription, User } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 
@@ -157,7 +157,7 @@ export async function processUser(user: UserWithProfile) {
       return;
     } catch (e: unknown) {
       retries++;
-      const message = parseFetchError(e);
+      const message = humanizeGenerationError(parseFetchError(e));
       console.error(
         `[generation] user=${user.id} attempt=${retries}/3 error=${message}`
       );

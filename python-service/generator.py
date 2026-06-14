@@ -92,6 +92,11 @@ def _call_anthropic(prompt: str):
             f"Modelo {MODEL} no disponible. Configurá ANTHROPIC_MODEL con un modelo válido."
         ) from None
     except anthropic.APIError as e:
+        msg = (e.message or str(e)).lower()
+        if "credit balance" in msg or "insufficient" in msg:
+            raise RuntimeError(
+                "Sin créditos en Anthropic. Cargá saldo en console.anthropic.com → Plans & Billing."
+            ) from None
         raise RuntimeError(f"Error de Anthropic: {e.message}") from e
 
 

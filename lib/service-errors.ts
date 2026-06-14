@@ -50,3 +50,31 @@ export function parseFetchError(error: unknown): string {
   }
   return "Error desconocido al generar contenido.";
 }
+
+/** Mensaje legible para la UI (sin JSON crudo de APIs). */
+export function humanizeGenerationError(raw: string): string {
+  const lower = raw.toLowerCase();
+
+  if (lower.includes("credit balance") || lower.includes("insufficient")) {
+    return "Sin créditos en Anthropic. Cargá saldo en console.anthropic.com → Plans & Billing y volvé a intentar.";
+  }
+
+  if (lower.includes("authentication") || lower.includes("api key")) {
+    return "API key de Anthropic inválida. Revisá ANTHROPIC_API_KEY en trendix_python.";
+  }
+
+  if (lower.includes("model") && lower.includes("not found")) {
+    return "El modelo de IA configurado no está disponible. Revisá ANTHROPIC_MODEL en trendix_python.";
+  }
+
+  const anthropicMsg = raw.match(/'message': '([^']+)'/);
+  if (anthropicMsg?.[1]) {
+    return anthropicMsg[1];
+  }
+
+  if (raw.length > 280) {
+    return `${raw.slice(0, 280)}…`;
+  }
+
+  return raw;
+}
