@@ -38,7 +38,10 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    void refreshStats();
+    const loadStats = async () => {
+      await refreshStats();
+    };
+    void loadStats();
   }, [refreshStats]);
 
   const onToggle = useCallback(
