@@ -16,39 +16,55 @@ function getTwilio() {
   return Twilio(sid, token);
 }
 
-export async function sendEmail(email: string, name: string) {
+export async function sendEmail(email: string, name: string, postCount?: number) {
   const resend = getResend();
+  const detail =
+    postCount && postCount > 0
+      ? `${postCount} posts con guion completo: hook, desarrollo, CTA, caption y hashtags.`
+      : "Tus posts con guion completo: hook, desarrollo, CTA, caption y hashtags.";
+
   await resend.emails.send({
-    from: `TrendContent <${process.env.RESEND_FROM_EMAIL}>`,
+    from: `Scripvox <${process.env.RESEND_FROM_EMAIL}>`,
     to: email,
-    subject: `🎬 Tu contenido de esta semana está listo, ${name}`,
+    subject: `Tu calendario de esta semana está listo, ${name}`,
     html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-        <h2 style="font-size:20px;margin:0 0 12px">Hola ${name} 👋</h2>
-        <p style="color:#555;line-height:1.6;margin:0 0 20px">
-          Tu calendario de contenido para esta semana ya está listo con guiones completos,
-          hooks y captions basados en tendencias reales de tu nicho.
-        </p>
-        <a href="${APP_URL}/dashboard"
-           style="display:inline-block;padding:12px 24px;background:#000;color:#fff;
-                  text-decoration:none;border-radius:8px;font-weight:500">
-          Ver mi calendario →
-        </a>
-        <p style="margin-top:32px;font-size:12px;color:#aaa">
-          TrendContent ·
-          <a href="${APP_URL}/dashboard/settings" style="color:#aaa">Ajustes</a>
-        </p>
+      <div style="background:#fff0f6;padding:32px 16px;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;">
+        <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;border:1px solid rgba(61,24,40,0.12);">
+          <div style="font-size:20px;font-weight:500;letter-spacing:-0.5px;margin:0 0 24px">
+            <span style="color:#17090e">scrip</span><span style="color:#f0287e;font-style:italic">vox</span>
+          </div>
+          <h1 style="font-size:20px;font-weight:500;letter-spacing:-0.5px;color:#17090e;margin:0 0 12px">
+            Hola ${name}, tu semana de contenido está lista
+          </h1>
+          <p style="color:#6b5560;line-height:1.6;font-size:15px;margin:0 0 24px">
+            ${detail} Todo basado en temas tendencia de tu nicho, listo para grabar.
+          </p>
+          <a href="${APP_URL}/dashboard"
+             style="display:inline-block;padding:14px 28px;background:#f0287e;color:#fff0f6;
+                    text-decoration:none;border-radius:8px;font-weight:500;font-size:15px">
+            Ver mi calendario →
+          </a>
+          <p style="margin-top:32px;font-size:12px;color:#9a8490">
+            Scripvox ·
+            <a href="${APP_URL}/dashboard/settings" style="color:#c4779e;text-decoration:none">Ajustes</a>
+          </p>
+        </div>
       </div>`,
   });
 }
 
-export async function sendWhatsApp(phone: string, name: string) {
+export async function sendWhatsApp(phone: string, name: string, postCount?: number) {
   const twilio = getTwilio();
   const formatted = formatPhone(phone);
+  const detail =
+    postCount && postCount > 0
+      ? `${postCount} posts con guiones completos, listos para grabar.`
+      : "Tus guiones completos, listos para grabar.";
+
   await twilio.messages.create({
     from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
     to: `whatsapp:${formatted}`,
-    body: `🎬 *TrendContent*\n\nHola ${name}! Tu calendario de contenido de esta semana ya está listo con guiones completos.\n\n👉 ${APP_URL}/dashboard`,
+    body: `*Scripvox*\n\nHola ${name}, tu semana de contenido está lista. ${detail}\n\n👉 ${APP_URL}/dashboard`,
   });
 }
 

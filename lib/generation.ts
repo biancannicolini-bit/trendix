@@ -150,8 +150,8 @@ export async function processUser(user: UserWithProfile) {
       ]);
 
       Promise.allSettled([
-        sendEmail(user.email, user.name),
-        sendWhatsApp(user.phone, user.name),
+        sendEmail(user.email, user.name, posts.length),
+        sendWhatsApp(user.phone, user.name, posts.length),
       ]);
 
       return;

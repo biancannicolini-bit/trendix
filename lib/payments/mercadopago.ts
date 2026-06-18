@@ -14,7 +14,7 @@ export const MercadoPagoProvider: PaymentProvider = {
     const pa = new PreApproval(mp);
     const res = await pa.create({
       body: {
-        reason: "TrendContent — Plan Mensual",
+        reason: "Scripvox — Plan Mensual",
         external_reference: userId,
         payer_email: userEmail,
         auto_recurring: {
