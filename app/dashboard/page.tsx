@@ -1,24 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LoadingState } from "@/components/ui/Spinner";
+import { WeekCalendar, type CalendarPost } from "@/components/dashboard/WeekCalendar";
+import {
+  MonthlyProgress,
+  type MonthlyStats,
+} from "@/components/dashboard/MonthlyProgress";
 import { humanizeGenerationError } from "@/lib/service-errors";
 
 type CalendarStatus = "generating" | "ready" | "error";
-
-type Post = {
-  id: string;
-  day: string;
-  platform: string;
-  pillar: string;
-  title: string;
-  hook: string;
-};
 
 type CalendarResponse = {
   calendar: {
@@ -26,26 +20,39 @@ type CalendarResponse = {
     status: CalendarStatus;
     weekStart: string;
     errorMessage?: string | null;
-    posts: Post[];
+    posts: CalendarPost[];
   } | null;
 };
-
-const DAY_ORDER = [
-  "Lunes",
-  "Martes",
-  "Miércoles",
-  "Jueves",
-  "Viernes",
-  "Sábado",
-  "Domingo",
-];
 
 export default function DashboardPage() {
   const router = useRouter();
   const [calendar, setCalendar] = useState<CalendarResponse["calendar"]>(null);
   const [loading, setLoading] = useState(true);
   const [retrying, setRetrying] = useState(false);
+  const [stats, setStats] = useState<MonthlyStats | null>(null);
   const kickoffAttempted = useRef(false);
+
+  const refreshStats = useCallback(async () => {
+    const res = await fetch("/api/stats/monthly").catch(() => null);
+    if (res?.ok) setStats(await res.json());
+  }, []);
+
+  useEffect(() => {
+    void refreshStats();
+  }, [refreshStats]);
+
+  const onToggle = useCallback(
+    (_id: string, completed: boolean) => {
+      setStats((s) => {
+        if (!s) return s;
+        const done = Math.min(s.total, Math.max(0, s.completed + (completed ? 1 : -1)));
+        const percentage = s.total === 0 ? 0 : Math.round((done / s.total) * 100);
+        return { ...s, completed: done, percentage };
+      });
+      void refreshStats();
+    },
+    [refreshStats]
+  );
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -83,15 +90,6 @@ export default function DashboardPage() {
     router.push("/onboarding/generating");
   };
 
-  const postsByDay = useMemo(() => {
-    if (!calendar?.posts) return {};
-    return calendar.posts.reduce<Record<string, Post[]>>((acc, post) => {
-      acc[post.day] = acc[post.day] ?? [];
-      acc[post.day].push(post);
-      return acc;
-    }, {});
-  }, [calendar]);
-
   if (loading) {
     return (
       <LoadingState
@@ -125,52 +123,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="animate-fade-in-up space-y-2">
-        <h1 className="text-[28px] font-medium tracking-[-0.5px]">
-          Tu calendario semanal
-        </h1>
-        <p className="text-sm text-text-secondary">
-          Contenido basado en tendencias reales, listo para grabar.
-        </p>
-      </div>
-
-      <div className="grid gap-4">
-        {DAY_ORDER.filter((day) => postsByDay[day]?.length).map(
-          (day, index) => (
-            <section
-              key={day}
-              className="animate-fade-in-up"
-              style={{ animationDelay: `${index * 0.06}s` }}
-            >
-              <Card className="space-y-4">
-                <h2 className="text-lg font-medium tracking-[-0.5px]">{day}</h2>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {postsByDay[day].map((post) => (
-                    <Link
-                      key={post.id}
-                      href={`/dashboard/post/${post.id}`}
-                      className="group rounded-md border border-[var(--color-border-tertiary)] p-4 transition-all duration-200 hover:border-brand-pink/50 hover:shadow-[0_4px_20px_rgba(240,40,126,0.08)]"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge>{post.pillar}</Badge>
-                        <span className="text-[11px] text-text-tertiary">
-                          {post.platform}
-                        </span>
-                      </div>
-                      <p className="mt-3 text-sm font-medium leading-snug text-text-primary">
-                        {post.title}
-                      </p>
-                      <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-text-secondary">
-                        {post.hook}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-              </Card>
-            </section>
-          )
-        )}
-      </div>
+      {stats && <MonthlyProgress stats={stats} />}
+      <WeekCalendar calendar={calendar} onToggle={onToggle} />
     </div>
   );
 }

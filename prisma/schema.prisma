@@ -111,6 +111,9 @@ model Post {
   duration       String
   productionNote String?
 
+  completed      Boolean   @default(false)
+  completedAt    DateTime?
+
   regenerationCount Int @default(0)
   createdAt      DateTime @default(now())
 

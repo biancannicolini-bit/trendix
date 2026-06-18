@@ -1,7 +1,7 @@
 export const COPY = {
   tagline: "Del trend al guion, en segundos.",
   productDescription:
-    "Analizamos Google Trends, encontramos lo que tu audiencia busca esta semana y generamos guiones listos para grabar.",
+    "Analizamos temas tendencia de tu nicho, encontramos lo que tu audiencia busca esta semana y generamos guiones listos para grabar.",
   ctaPrimary: "Empezar ahora — ARS $15.000/mes",
   planPrice: "ARS $15.000/mes",
   planFeatures: [

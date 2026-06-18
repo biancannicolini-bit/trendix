@@ -6,7 +6,7 @@ export function Input({ className, ...props }: InputProps) {
   return (
     <input
       className={cn(
-        "w-full rounded-md border border-[var(--color-border-tertiary)] bg-bg-primary px-3 py-2.5 text-sm text-text-primary outline-none transition-colors duration-200 placeholder:text-text-tertiary focus:border-brand-pink",
+        "w-full rounded-md border border-[var(--color-border-tertiary)] bg-bg-primary px-3 py-2.5 text-sm text-text-primary outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-text-tertiary hover:border-[var(--color-border-secondary)] focus:border-brand-pink focus:shadow-[0_0_0_3px_rgba(240,40,126,0.14)]",
         className
       )}
       {...props}
@@ -20,7 +20,7 @@ export function Select({ className, ...props }: SelectProps) {
   return (
     <select
       className={cn(
-        "w-full rounded-md border border-[var(--color-border-tertiary)] bg-bg-primary px-3 py-2.5 text-sm text-text-primary outline-none transition-colors duration-200 focus:border-brand-pink",
+        "w-full rounded-md border border-[var(--color-border-tertiary)] bg-bg-primary px-3 py-2.5 text-sm text-text-primary outline-none transition-[border-color,box-shadow] duration-200 hover:border-[var(--color-border-secondary)] focus:border-brand-pink focus:shadow-[0_0_0_3px_rgba(240,40,126,0.14)]",
         className
       )}
       {...props}
