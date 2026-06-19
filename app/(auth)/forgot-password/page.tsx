@@ -1,54 +1,71 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
 
 const schema = z.object({
   email: z.string().email("Email inválido"),
-  password: z.string().min(8, "Mínimo 8 caracteres"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-export default function LoginPage() {
-  const router = useRouter();
+export default function ForgotPasswordPage() {
+  const [sent, setSent] = useState(false);
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (values: FormValues) => {
-    const res = await signIn("credentials", {
-      email: values.email,
-      password: values.password,
-      redirect: false,
-    });
-
-    if (res?.error) {
-      toast.error("Credenciales inválidas");
-      return;
-    }
-
-    router.push("/dashboard");
+    await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    }).catch(() => {});
+    // Siempre mostramos confirmación, exista o no la cuenta.
+    setSent(true);
   };
+
+  if (sent) {
+    return (
+      <div className="space-y-8 animate-fade-in-up">
+        <div className="space-y-2">
+          <h1 className="text-[28px] font-medium tracking-[-0.5px] text-text-primary">
+            Revisá tu email
+          </h1>
+          <p className="text-sm leading-relaxed text-text-secondary">
+            Si hay una cuenta con {getValues("email")}, te enviamos un link para
+            cambiar tu contraseña. Vence en una hora.
+          </p>
+        </div>
+        <p className="text-center text-sm text-text-secondary">
+          <Link
+            href="/login"
+            className="font-medium text-brand-pink transition-opacity hover:opacity-80"
+          >
+            Volver a ingresar
+          </Link>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fade-in-up">
       <div className="space-y-2">
         <h1 className="text-[28px] font-medium tracking-[-0.5px] text-text-primary">
-          Ingresar
+          Recuperar contraseña
         </h1>
         <p className="text-sm text-text-secondary">
-          Accedé a tu calendario semanal.
+          Ingresá tu email y te mandamos un link para crear una nueva.
         </p>
       </div>
 
@@ -63,37 +80,19 @@ export default function LoginPage() {
             />
           </Field>
 
-          <Field label="Contraseña" error={errors.password?.message}>
-            <Input
-              type="password"
-              autoComplete="current-password"
-              placeholder="********"
-              {...register("password")}
-            />
-          </Field>
-
-          <div className="text-right">
-            <Link
-              href="/forgot-password"
-              className="text-[13px] font-medium text-text-secondary transition-colors hover:text-brand-pink"
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
-
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Ingresando..." : "Ingresar"}
+            {isSubmitting ? "Enviando..." : "Enviar link"}
           </Button>
         </form>
       </Card>
 
       <p className="text-center text-sm text-text-secondary">
-        ¿No tenés cuenta?{" "}
+        ¿Te acordaste?{" "}
         <Link
-          href="/register"
+          href="/login"
           className="font-medium text-brand-pink transition-opacity hover:opacity-80"
         >
-          Crear cuenta
+          Ingresar
         </Link>
       </p>
     </div>
