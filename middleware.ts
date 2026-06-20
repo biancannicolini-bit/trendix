@@ -13,6 +13,7 @@ export default auth((req) => {
     "/reset-password",
     "/api/auth",
     "/api/webhooks",
+    "/api/cron",
   ].some((p) => pathname.startsWith(p));
   if (isPublic) return NextResponse.next();
 
