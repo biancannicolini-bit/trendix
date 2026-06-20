@@ -51,12 +51,20 @@ model Subscription {
 
   mpSubscriptionId String?   @unique
   mpPayerId        String?
+  mpPreferenceId   String?
+  lastPaymentId    String?
 
   status           String    @default("pending")
-  // Status values: pending | authorized | paused | cancelled | cancelling | payment_failed
+  // Status values: pending | authorized | paused | cancelled | cancelling | payment_failed | expired
+
+  method           String    @default("subscription")
+  // method: subscription (crédito, auto-renueva) | one_time (Checkout Pro, pago mensual manual)
 
   amount           Float     @default(15000)
   currency         String    @default("ARS")
+
+  accessUntil      DateTime?
+  renewalReminderAt DateTime?
 
   nextBillingDate  DateTime?
   cancelAt         DateTime?

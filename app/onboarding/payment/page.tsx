@@ -7,33 +7,37 @@ import { Card } from "@/components/ui/Card";
 import { COPY } from "@/lib/copy";
 import { BRAND } from "@/lib/brand";
 
-export default function OnboardingPaymentPage() {
-  const [isLoading, setIsLoading] = useState(false);
+type Mode = "subscription" | "one_time";
 
-  const handleCheckout = async () => {
-    setIsLoading(true);
+export default function OnboardingPaymentPage() {
+  const [loadingMode, setLoadingMode] = useState<Mode | null>(null);
+
+  const handleCheckout = async (mode: Mode) => {
+    setLoadingMode(mode);
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ method: "mercadopago" }),
+      body: JSON.stringify({ mode }),
     });
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       toast.error(data.error ?? "No pudimos iniciar el pago");
-      setIsLoading(false);
+      setLoadingMode(null);
       return;
     }
 
     const data = await res.json();
     if (!data.checkoutUrl) {
       toast.error("No se pudo iniciar el pago");
-      setIsLoading(false);
+      setLoadingMode(null);
       return;
     }
 
     window.location.href = data.checkoutUrl;
   };
+
+  const busy = loadingMode !== null;
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -59,7 +63,7 @@ export default function OnboardingPaymentPage() {
           </p>
         </div>
 
-        <div className="space-y-4 p-6">
+        <div className="space-y-5 p-6">
           <ul className="space-y-2">
             {COPY.planFeatures.map((feature) => (
               <li
@@ -72,13 +76,43 @@ export default function OnboardingPaymentPage() {
             ))}
           </ul>
 
-          <div className="rounded-md border border-[var(--color-border-tertiary)] px-3 py-2.5 text-sm text-text-secondary">
-            Mercado Pago
+          <div className="space-y-2">
+            <Button
+              type="button"
+              onClick={() => handleCheckout("subscription")}
+              disabled={busy}
+            >
+              {loadingMode === "subscription"
+                ? "Redirigiendo..."
+                : "Suscribirme con tarjeta de crédito"}
+            </Button>
+            <p className="text-center text-xs text-text-tertiary">
+              Se renueva solo cada mes. Cancelás cuando quieras.
+            </p>
           </div>
 
-          <Button type="button" onClick={handleCheckout} disabled={isLoading}>
-            {isLoading ? "Redirigiendo..." : "Continuar con Mercado Pago"}
-          </Button>
+          <div className="flex items-center gap-3 text-[11px] uppercase tracking-wide text-text-tertiary">
+            <span className="h-px flex-1 bg-[var(--color-border-tertiary)]" />
+            o
+            <span className="h-px flex-1 bg-[var(--color-border-tertiary)]" />
+          </div>
+
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => handleCheckout("one_time")}
+              disabled={busy}
+            >
+              {loadingMode === "one_time"
+                ? "Redirigiendo..."
+                : "Pagar con débito u otro medio"}
+            </Button>
+            <p className="text-center text-xs text-text-tertiary">
+              Débito, efectivo o dinero en cuenta. Te avisamos antes de que venza
+              para que lo renueves.
+            </p>
+          </div>
         </div>
       </Card>
     </div>

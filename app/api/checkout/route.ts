@@ -24,29 +24,59 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const { method } = await req.json();
+  const { mode } = await req.json();
+  const oneTime = mode === "one_time";
+
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) {
     return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
   }
 
   try {
-    const provider = getPaymentProvider(method);
-    const { checkoutUrl, subscriptionId } = await provider.createSubscription({
+    const provider = getPaymentProvider("mercadopago");
+    const params = {
       userId: user.id,
       userEmail: user.email,
       userName: user.name,
-    });
+    };
+
+    if (oneTime) {
+      const { checkoutUrl, preferenceId } =
+        await provider.createOneTimePayment(params);
+
+      await prisma.subscription.upsert({
+        where: { userId: user.id },
+        create: {
+          userId: user.id,
+          mpPreferenceId: preferenceId,
+          method: "one_time",
+          status: "pending",
+        },
+        update: {
+          mpPreferenceId: preferenceId,
+          method: "one_time",
+          status: "pending",
+        },
+      });
+
+      return NextResponse.json({ checkoutUrl });
+    }
+
+    const { checkoutUrl, subscriptionId } = await provider.createSubscription(
+      params
+    );
 
     await prisma.subscription.upsert({
       where: { userId: user.id },
       create: {
         userId: user.id,
         mpSubscriptionId: subscriptionId,
+        method: "subscription",
         status: "pending",
       },
       update: {
         mpSubscriptionId: subscriptionId,
+        method: "subscription",
         status: "pending",
       },
     });

@@ -1,4 +1,4 @@
-import MercadoPagoConfig, { PreApproval } from "mercadopago";
+import MercadoPagoConfig, { PreApproval, Preference } from "mercadopago";
 import type { PaymentProvider } from "./types";
 
 function getMp() {
@@ -6,6 +6,8 @@ function getMp() {
   if (!token) throw new Error("MP_ACCESS_TOKEN no configurada");
   return new MercadoPagoConfig({ accessToken: token });
 }
+
+const APP_URL = process.env.NEXT_PUBLIC_URL;
 
 export const MercadoPagoProvider: PaymentProvider = {
   name: "mercadopago",
@@ -23,11 +25,40 @@ export const MercadoPagoProvider: PaymentProvider = {
           transaction_amount: 15000,
           currency_id: "ARS",
         },
-        back_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/generating`,
+        back_url: `${APP_URL}/onboarding/generating`,
+        notification_url: `${APP_URL}/api/webhooks/mercadopago`,
         status: "pending",
       },
     });
     return { checkoutUrl: res.init_point!, subscriptionId: res.id! };
+  },
+  async createOneTimePayment({ userId, userEmail }) {
+    const mp = getMp();
+    const pref = new Preference(mp);
+    const res = await pref.create({
+      body: {
+        items: [
+          {
+            id: "scripvox-mensual",
+            title: "Scripvox — Acceso mensual",
+            quantity: 1,
+            unit_price: 15000,
+            currency_id: "ARS",
+          },
+        ],
+        payer: { email: userEmail },
+        external_reference: userId,
+        back_urls: {
+          success: `${APP_URL}/onboarding/generating`,
+          pending: `${APP_URL}/onboarding/generating`,
+          failure: `${APP_URL}/onboarding/payment`,
+        },
+        auto_return: "approved",
+        notification_url: `${APP_URL}/api/webhooks/mercadopago`,
+        metadata: { user_id: userId },
+      },
+    });
+    return { checkoutUrl: res.init_point!, preferenceId: res.id! };
   },
   async cancelSubscription(id) {
     const mp = getMp();
