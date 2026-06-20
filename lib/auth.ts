@@ -38,10 +38,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.subscriptionStatus = user.subscriptionStatus;
         token.isAdmin = user.isAdmin;
+      } else if (trigger === "update" && token.sub) {
+        // Refrescar el estado tras un pago / cambio (corre en runtime Node).
+        const sub = await prisma.subscription.findUnique({
+          where: { userId: token.sub },
+          select: { status: true },
+        });
+        token.subscriptionStatus = sub?.status ?? "none";
       }
       return token;
     },

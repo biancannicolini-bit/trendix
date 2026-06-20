@@ -1,15 +1,24 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 
 export default function OnboardingGeneratingPage() {
   const router = useRouter();
+  const { update } = useSession();
   const [status, setStatus] = useState<string>("generating");
 
   useEffect(() => {
+    const goToDashboard = async () => {
+      // Refresca el token (el pago ya cambió el estado en la DB) antes de
+      // entrar, así el middleware no rebota al usuario a la pantalla de pago.
+      await update().catch(() => {});
+      router.push("/dashboard");
+    };
+
     const poll = async () => {
       await fetch("/api/generation/start", { method: "POST" }).catch(() => {});
 
@@ -21,20 +30,15 @@ export default function OnboardingGeneratingPage() {
 
       setStatus(calendar.status);
 
-      if (calendar.status === "ready") {
-        router.push("/dashboard");
-        return;
-      }
-      if (calendar.status === "error") {
-        router.push("/dashboard");
-        return;
+      if (calendar.status === "ready" || calendar.status === "error") {
+        await goToDashboard();
       }
     };
 
     poll();
     const interval = setInterval(poll, 3000);
     return () => clearInterval(interval);
-  }, [router]);
+  }, [router, update]);
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">

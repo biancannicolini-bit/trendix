@@ -40,13 +40,19 @@ export async function getWeekStartForGeneration(userId: string): Promise<Date> {
   return hasReady ? getNextWeekStart() : getCurrentWeekStart();
 }
 
+export function subscriptionHasAccess(sub: Subscription | null): boolean {
+  if (!sub || sub.status !== "authorized") return false;
+  if (sub.method === "one_time") {
+    return !!sub.accessUntil && sub.accessUntil > new Date();
+  }
+  return true;
+}
+
 export function canGenerateForUser(user: {
   email: string;
   subscription: Subscription | null;
 }): boolean {
-  return (
-    user.subscription?.status === "authorized" || isAdminEmail(user.email)
-  );
+  return subscriptionHasAccess(user.subscription) || isAdminEmail(user.email);
 }
 
 export async function processUser(user: UserWithProfile) {

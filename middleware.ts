@@ -50,7 +50,7 @@ export default auth((req) => {
   if (isDashboard && subStatus === "paused") {
     return NextResponse.redirect(new URL("/subscription-paused", req.url));
   }
-  if (isDashboard && subStatus === "cancelled") {
+  if (isDashboard && (subStatus === "cancelled" || subStatus === "expired")) {
     return NextResponse.redirect(new URL("/subscription-expired", req.url));
   }
 
