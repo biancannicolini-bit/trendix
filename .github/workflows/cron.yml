@@ -1,0 +1,20 @@
+name: Cron
+
+# Dispara los cron jobs de Scripvox sin depender del VPS.
+# Requiere el secret CRON_SECRET en el repo (Settings → Secrets and variables
+# → Actions), con el MISMO valor que la variable CRON_SECRET del stack en Portainer.
+
+on:
+  schedule:
+    # ~09:00 Argentina (UTC-3) todos los días → vence accesos y manda recordatorios
+    - cron: "0 12 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  renewals:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar /api/cron/renewals
+        run: |
+          curl -fsS -X POST "https://app.scripvox.com/api/cron/renewals" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
