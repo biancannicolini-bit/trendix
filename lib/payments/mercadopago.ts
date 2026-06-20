@@ -26,7 +26,6 @@ export const MercadoPagoProvider: PaymentProvider = {
           currency_id: "ARS",
         },
         back_url: `${APP_URL}/onboarding/generating`,
-        notification_url: `${APP_URL}/api/webhooks/mercadopago`,
         status: "pending",
       },
     });
