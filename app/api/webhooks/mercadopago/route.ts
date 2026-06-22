@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { triggerUserGeneration } from "@/lib/generation";
 import MercadoPagoConfig, { PreApproval, Payment } from "mercadopago";
@@ -9,7 +10,54 @@ function getMp() {
   return new MercadoPagoConfig({ accessToken: token });
 }
 
+/**
+ * Valida la firma del webhook (HMAC-SHA256) según MP.
+ * Kill-switch: si no hay MP_WEBHOOK_SECRET, no valida (rollout gradual / desactivar).
+ */
+function verifySignature(req: NextRequest): boolean {
+  const secret = process.env.MP_WEBHOOK_SECRET;
+  if (!secret) return true;
+
+  const xSignature = req.headers.get("x-signature");
+  const xRequestId = req.headers.get("x-request-id");
+  if (!xSignature || !xRequestId) return false;
+
+  const parts: Record<string, string> = {};
+  for (const segment of xSignature.split(",")) {
+    const [k, v] = segment.split("=").map((s) => s.trim());
+    if (k && v) parts[k] = v;
+  }
+  const ts = parts.ts;
+  const v1 = parts.v1;
+  if (!ts || !v1) return false;
+
+  const dataId = (req.nextUrl.searchParams.get("data.id") ?? "").toLowerCase();
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  const computed = crypto
+    .createHmac("sha256", secret)
+    .update(manifest)
+    .digest("hex");
+
+  try {
+    const ok = crypto.timingSafeEqual(
+      Buffer.from(computed),
+      Buffer.from(v1)
+    );
+    if (!ok) {
+      console.warn("[mp-webhook] firma no coincide", { computed, v1, manifest });
+    }
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: NextRequest) {
+  if (!verifySignature(req)) {
+    console.warn("[mp-webhook] firma inválida — rechazado");
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
   const body = await req.json();
 
   try {
