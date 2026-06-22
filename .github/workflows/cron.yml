@@ -8,13 +8,33 @@ on:
   schedule:
     # ~09:00 Argentina (UTC-3) todos los días → vence accesos y manda recordatorios
     - cron: "0 12 * * *"
-  workflow_dispatch: {}
+    # ~17:00 Argentina (UTC-3) los viernes → genera la semana entrante para los suscriptores
+    - cron: "0 20 * * 5"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Qué cron correr manualmente"
+        type: choice
+        options:
+          - renewals
+          - weekly
+        default: renewals
 
 jobs:
   renewals:
+    if: github.event.schedule == '0 12 * * *' || (github.event_name == 'workflow_dispatch' && inputs.job == 'renewals')
     runs-on: ubuntu-latest
     steps:
       - name: Disparar /api/cron/renewals
         run: |
           curl -fsS -X POST "https://app.scripvox.com/api/cron/renewals" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+  weekly:
+    if: github.event.schedule == '0 20 * * 5' || (github.event_name == 'workflow_dispatch' && inputs.job == 'weekly')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar /api/cron/weekly
+        run: |
+          curl -fsS -X POST "https://app.scripvox.com/api/cron/weekly" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
