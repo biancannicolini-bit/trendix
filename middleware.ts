@@ -17,6 +17,9 @@ export default auth((req) => {
   ].some((p) => pathname.startsWith(p));
   if (isPublic) return NextResponse.next();
 
+  // Landing pública (match exacto, no startsWith para no abrir el resto).
+  if (pathname === "/") return NextResponse.next();
+
   if (!session?.user?.id) {
     return NextResponse.redirect(new URL("/login", req.url));
   }

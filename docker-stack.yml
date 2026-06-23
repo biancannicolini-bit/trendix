@@ -71,13 +71,13 @@ services:
         - traefik.enable=true
         - traefik.docker.network=${TRAEFIK_NETWORK}
         # HTTPS
-        - traefik.http.routers.trendix.rule=Host(`${TRAEFIK_DOMAIN}`)
+        - traefik.http.routers.trendix.rule=Host(`${TRAEFIK_DOMAIN}`) || Host(`${LANDING_DOMAIN}`) || Host(`www.${LANDING_DOMAIN}`)
         - traefik.http.routers.trendix.entrypoints=${TRAEFIK_ENTRYPOINT}
         - traefik.http.routers.trendix.tls=true
         - traefik.http.routers.trendix.tls.certresolver=${TRAEFIK_CERT_RESOLVER}
         - traefik.http.services.trendix.loadbalancer.server.port=3000
         # HTTP → HTTPS
-        - traefik.http.routers.trendix-http.rule=Host(`${TRAEFIK_DOMAIN}`)
+        - traefik.http.routers.trendix-http.rule=Host(`${TRAEFIK_DOMAIN}`) || Host(`${LANDING_DOMAIN}`) || Host(`www.${LANDING_DOMAIN}`)
         - traefik.http.routers.trendix-http.entrypoints=${TRAEFIK_HTTP_ENTRYPOINT}
         - traefik.http.routers.trendix-http.middlewares=trendix-redirect-https
         - traefik.http.middlewares.trendix-redirect-https.redirectscheme.scheme=https
