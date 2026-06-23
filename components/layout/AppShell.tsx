@@ -6,9 +6,14 @@ import { cn } from "@/lib/utils";
 type AppShellProps = {
   children: React.ReactNode;
   active?: "calendar" | "settings";
+  isAdmin?: boolean;
 };
 
-export function AppShell({ children, active = "calendar" }: AppShellProps) {
+export function AppShell({
+  children,
+  active = "calendar",
+  isAdmin = false,
+}: AppShellProps) {
   return (
     <div className="min-h-screen bg-bg-secondary">
       <header
@@ -30,6 +35,11 @@ export function AppShell({ children, active = "calendar" }: AppShellProps) {
             <NavLink href="/dashboard/settings" active={active === "settings"}>
               Ajustes
             </NavLink>
+            {isAdmin && (
+              <NavLink href="/admin" active={false}>
+                Admin
+              </NavLink>
+            )}
           </nav>
         </div>
       </header>

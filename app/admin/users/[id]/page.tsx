@@ -19,8 +19,10 @@ type UserDetail = {
   } | null;
   subscription: {
     status: string;
+    method: string;
     amount: number;
     currency: string;
+    accessUntil: string | null;
     nextBillingDate: string | null;
   } | null;
   calendars: {
@@ -34,6 +36,10 @@ type UserDetail = {
   aiCostThisMonth: number;
   tokensThisMonth: number;
 };
+
+function fmtDate(d: string | null) {
+  return d ? new Date(d).toLocaleDateString("es-AR") : "—";
+}
 
 export default function AdminUserDetailPage() {
   const params = useParams<{ id: string }>();
@@ -57,59 +63,60 @@ export default function AdminUserDetailPage() {
       toast.error("No se pudo disparar la generación");
       return;
     }
-
     toast.success("Generación iniciada");
   };
 
   if (!user) {
-    return <p className="text-sm text-gray-600">Cargando usuario...</p>;
+    return <p className="text-sm text-text-secondary">Cargando usuario...</p>;
   }
 
+  const sub = user.subscription;
+  const method = sub ? (sub.method === "one_time" ? "Débito (pago único)" : "Crédito (suscripción)") : "—";
+
   return (
-    <div className="space-y-6">
-      <Link href="/admin/users" className="text-sm text-gray-600">
+    <div className="space-y-6 animate-fade-in-up">
+      <Link
+        href="/admin/users"
+        className="inline-flex text-sm font-medium text-text-secondary transition-colors hover:text-brand-pink"
+      >
         ← Volver a usuarios
       </Link>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">{user.name}</h1>
-          <p className="text-sm text-gray-600">{user.email}</p>
-          <p className="text-sm text-gray-600">{user.phone}</p>
+        <div className="space-y-1">
+          <h1 className="text-[26px] font-medium tracking-[-0.5px]">
+            {user.name}
+          </h1>
+          <p className="text-sm text-text-secondary">{user.email}</p>
+          <p className="text-sm text-text-secondary">{user.phone}</p>
         </div>
         <button
           type="button"
           onClick={handleGenerate}
           disabled={generating}
-          className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className="rounded-md bg-brand-pink px-4 py-2 text-sm font-medium text-brand-light transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {generating ? "Generando..." : "Generar calendario ahora"}
         </button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-xs text-gray-500">Suscripción</p>
-          <p className="mt-1 font-medium">
-            {user.subscription?.status ?? "sin suscripción"}
-          </p>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-xs text-gray-500">Costo IA (mes)</p>
-          <p className="mt-1 font-medium">${user.aiCostThisMonth.toFixed(4)}</p>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-xs text-gray-500">Tokens (mes)</p>
-          <p className="mt-1 font-medium">
-            {user.tokensThisMonth.toLocaleString()}
-          </p>
-        </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Suscripción" value={sub?.status ?? "sin suscripción"} />
+        <Stat label="Método" value={method} />
+        <Stat label="Costo IA (mes)" value={`$${user.aiCostThisMonth.toFixed(4)}`} />
+        <Stat label="Tokens (mes)" value={user.tokensThisMonth.toLocaleString("es-AR")} />
+        {sub?.method === "one_time" && (
+          <Stat label="Acceso hasta" value={fmtDate(sub.accessUntil)} />
+        )}
+        {sub?.method !== "one_time" && sub && (
+          <Stat label="Próximo cobro" value={fmtDate(sub.nextBillingDate)} />
+        )}
       </div>
 
       {user.profile && (
-        <section className="rounded-lg border border-gray-200 bg-white p-4">
-          <h2 className="font-semibold">Perfil</h2>
-          <div className="mt-2 grid gap-1 text-sm text-gray-700">
+        <section className="rounded-lg border border-[var(--color-border-tertiary)] bg-bg-primary p-4">
+          <h2 className="font-medium tracking-[-0.5px]">Perfil</h2>
+          <div className="mt-2 grid gap-1 text-sm text-text-secondary">
             <p>Nicho: {user.profile.niche}</p>
             <p>Ubicación: {user.profile.location}</p>
             <p>Plataformas: {user.profile.platforms.join(", ")}</p>
@@ -119,33 +126,38 @@ export default function AdminUserDetailPage() {
       )}
 
       <section className="space-y-3">
-        <h2 className="font-semibold">Calendarios recientes</h2>
+        <h2 className="text-lg font-medium tracking-[-0.5px]">
+          Calendarios recientes
+        </h2>
         {user.calendars.length === 0 ? (
-          <p className="text-sm text-gray-600">Sin calendarios.</p>
+          <p className="text-sm text-text-secondary">Sin calendarios.</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-[var(--color-border-tertiary)] bg-bg-primary">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2">Semana</th>
-                  <th className="px-4 py-2">Estado</th>
-                  <th className="px-4 py-2">Posts</th>
-                  <th className="px-4 py-2">Costo</th>
-                  <th className="px-4 py-2">Generado</th>
+              <thead className="border-b border-[var(--color-border-tertiary)] bg-bg-secondary">
+                <tr className="text-text-secondary">
+                  <th className="px-4 py-2.5 font-medium">Semana</th>
+                  <th className="px-4 py-2.5 font-medium">Estado</th>
+                  <th className="px-4 py-2.5 font-medium">Posts</th>
+                  <th className="px-4 py-2.5 font-medium">Costo</th>
+                  <th className="px-4 py-2.5 font-medium">Generado</th>
                 </tr>
               </thead>
               <tbody>
                 {user.calendars.map((cal) => (
-                  <tr key={cal.id} className="border-b border-gray-100">
-                    <td className="px-4 py-2">
+                  <tr
+                    key={cal.id}
+                    className="border-b border-[var(--color-border-tertiary)] text-text-primary last:border-0"
+                  >
+                    <td className="px-4 py-2.5">
                       {new Date(cal.weekStart).toLocaleDateString("es-AR")}
                     </td>
-                    <td className="px-4 py-2">{cal.status}</td>
-                    <td className="px-4 py-2">{cal.postCount}</td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2.5">{cal.status}</td>
+                    <td className="px-4 py-2.5">{cal.postCount}</td>
+                    <td className="px-4 py-2.5 text-text-secondary">
                       {cal.costUsd != null ? `$${cal.costUsd.toFixed(4)}` : "-"}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2.5 text-text-secondary">
                       {new Date(cal.generatedAt).toLocaleString("es-AR")}
                     </td>
                   </tr>
@@ -155,6 +167,17 @@ export default function AdminUserDetailPage() {
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-[var(--color-border-tertiary)] bg-bg-primary p-4">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
+        {label}
+      </p>
+      <p className="mt-1 font-medium text-text-primary">{value}</p>
     </div>
   );
 }

@@ -7,11 +7,19 @@ type UserRow = {
   id: string;
   name: string;
   email: string;
-  subscription: { status: string } | null;
+  subscription: {
+    status: string;
+    method: string;
+    accessUntil: string | null;
+  } | null;
   calendarCount: number;
   aiCostThisMonth: number;
-  lastCalendar: { status: string; generatedAt: string } | null;
 };
+
+function methodLabel(sub: UserRow["subscription"]) {
+  if (!sub) return "—";
+  return sub.method === "one_time" ? "Débito" : "Crédito";
+}
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -29,11 +37,13 @@ export default function AdminUsersPage() {
   }, [page, status]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Usuarios</h1>
-          <p className="text-sm text-gray-600">{users.length} en esta página</p>
+        <div className="space-y-1">
+          <h1 className="text-[28px] font-medium tracking-[-0.5px]">Usuarios</h1>
+          <p className="text-sm text-text-secondary">
+            {users.length} en esta página
+          </p>
         </div>
         <select
           value={status}
@@ -41,45 +51,53 @@ export default function AdminUsersPage() {
             setStatus(e.target.value);
             setPage(1);
           }}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+          className="rounded-md border border-[var(--color-border-tertiary)] bg-bg-primary px-3 py-2 text-sm text-text-primary outline-none focus:border-brand-pink"
         >
           <option value="all">Todos</option>
           <option value="authorized">Activos</option>
           <option value="pending">Pendientes</option>
           <option value="cancelling">Cancelando</option>
           <option value="cancelled">Cancelados</option>
+          <option value="expired">Vencidos</option>
           <option value="payment_failed">Pago fallido</option>
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-[var(--color-border-tertiary)] bg-bg-primary">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50">
-            <tr>
-              <th className="px-4 py-2">Nombre</th>
-              <th className="px-4 py-2">Email</th>
-              <th className="px-4 py-2">Estado</th>
-              <th className="px-4 py-2">Calendarios</th>
-              <th className="px-4 py-2">Costo IA</th>
-              <th className="px-4 py-2"></th>
+          <thead className="border-b border-[var(--color-border-tertiary)] bg-bg-secondary">
+            <tr className="text-text-secondary">
+              <th className="px-4 py-2.5 font-medium">Nombre</th>
+              <th className="px-4 py-2.5 font-medium">Email</th>
+              <th className="px-4 py-2.5 font-medium">Estado</th>
+              <th className="px-4 py-2.5 font-medium">Método</th>
+              <th className="px-4 py-2.5 font-medium">Calendarios</th>
+              <th className="px-4 py-2.5 font-medium">Costo IA</th>
+              <th className="px-4 py-2.5"></th>
             </tr>
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="border-b border-gray-100">
-                <td className="px-4 py-2">{user.name}</td>
-                <td className="px-4 py-2">{user.email}</td>
-                <td className="px-4 py-2">
+              <tr
+                key={user.id}
+                className="border-b border-[var(--color-border-tertiary)] text-text-primary last:border-0"
+              >
+                <td className="px-4 py-2.5">{user.name}</td>
+                <td className="px-4 py-2.5 text-text-secondary">{user.email}</td>
+                <td className="px-4 py-2.5">
                   {user.subscription?.status ?? "sin suscripción"}
                 </td>
-                <td className="px-4 py-2">{user.calendarCount}</td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-2.5 text-text-secondary">
+                  {methodLabel(user.subscription)}
+                </td>
+                <td className="px-4 py-2.5">{user.calendarCount}</td>
+                <td className="px-4 py-2.5 text-text-secondary">
                   ${user.aiCostThisMonth.toFixed(4)}
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-2.5">
                   <Link
                     href={`/admin/users/${user.id}`}
-                    className="font-medium text-black"
+                    className="font-medium text-brand-pink hover:opacity-80"
                   >
                     Ver →
                   </Link>
@@ -91,23 +109,23 @@ export default function AdminUsersPage() {
       </div>
 
       {pages > 1 && (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
-            className="rounded-md border border-gray-300 px-3 py-1 text-sm disabled:opacity-50"
+            className="rounded-md border border-[var(--color-border-tertiary)] px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-[var(--color-border-secondary)] disabled:opacity-50"
           >
             Anterior
           </button>
-          <span className="px-2 py-1 text-sm text-gray-600">
+          <span className="px-2 py-1 text-sm text-text-tertiary">
             {page} / {pages}
           </span>
           <button
             type="button"
             disabled={page >= pages}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded-md border border-gray-300 px-3 py-1 text-sm disabled:opacity-50"
+            className="rounded-md border border-[var(--color-border-tertiary)] px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-[var(--color-border-secondary)] disabled:opacity-50"
           >
             Siguiente
           </button>
