@@ -4,12 +4,34 @@ import json
 import os
 import re
 import time
+from datetime import datetime
 from cost_tracker import calculate_cost
 
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 MODEL = os.getenv("ANTHROPIC_MODEL", DEFAULT_MODEL)
 
+# Búsqueda web del lado de Anthropic: el modelo busca en la web y nos devuelve
+# datos reales y actuales con citas. max_uses acota costo y latencia.
+WEB_SEARCH_TOOL = {
+    "type": "web_search_20250305",
+    "name": "web_search",
+    "max_uses": int(os.getenv("WEB_SEARCH_MAX_USES", "5")),
+}
+# Búsqueda web se cobra aparte de los tokens: USD 10 cada 1000 búsquedas.
+WEB_SEARCH_COST_PER_CALL = 0.01
+
+_SPANISH_MONTHS = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+]
+
 _client: anthropic.Anthropic | None = None
+
+
+def _today():
+    """Fecha de hoy en formato humano + el año, para que el modelo no use datos viejos."""
+    now = datetime.now()
+    return f"{now.day} de {_SPANISH_MONTHS[now.month - 1]} de {now.year}", now.year
 
 
 def _get_client() -> anthropic.Anthropic:
@@ -31,13 +53,21 @@ def build_prompt(
         else f"- {niche} en {location}"
     )
     platforms_str = ", ".join(platforms)
+    today_str, current_year = _today()
 
     return f"""Sos un estratega experto en redes sociales para {niche} en {location}.
 
-TENDENCIAS REALES encontradas esta semana en {niche} / {location}:
+FECHA DE HOY: {today_str}. Estamos en el año {current_year}. Todo lo que digas tiene que estar al día a esta fecha.
+
+TENDENCIAS REALES (Google Trends) de esta semana en {niche} / {location}:
 {trends_str}
 
-Usá estas tendencias y tu conocimiento de {location} para incluir datos y referencias actuales en los guiones.
+Tenés una herramienta de búsqueda web. USALA para verificar y traer datos reales y actuales ({current_year}) sobre {niche} en {location}: cifras, precios, tasas, programas, leyes, fechas y nombres. Cruzá las tendencias de arriba con lo que encontrás en la web.
+
+REGLAS ESTRICTAS (no negociables):
+- No inventes nada. Toda cifra, precio, porcentaje, ley, programa o fecha que menciones tiene que salir de la búsqueda web o de las tendencias reales.
+- Nunca uses un año pasado como si fuera el actual. Si algo está vigente, referilo a {current_year}.
+- Si no encontrás un dato verificado, NO pongas un número o año específico inventado: hablá en términos generales.
 
 Perfil del creador:
 - Nicho: {niche}
@@ -77,16 +107,46 @@ CRÍTICO: Devolvé ÚNICAMENTE un array JSON válido. Sin markdown, sin explicac
   }}
 ]
 
-Todo en {language}. Datos reales y actuales de {location}. Guiones listos para grabar."""
+Todo en {language}. Datos reales y verificados de {location}, al día a {current_year}. Guiones listos para grabar."""
 
 
-def _call_anthropic(prompt: str):
+def _run_generation(prompt: str) -> dict:
+    """Corre la generación con búsqueda web habilitada.
+
+    La búsqueda web del servidor itera internamente; si llega al límite, devuelve
+    stop_reason="pause_turn" y hay que re-llamar con el historial para que siga.
+    Acumulamos tokens y cantidad de búsquedas a lo largo de todas las vueltas, y
+    devolvemos el texto del último turno (el que trae el JSON final).
+    """
+    client = _get_client()
+    messages = [{"role": "user", "content": prompt}]
+    tokens_in = 0
+    tokens_out = 0
+    searches = 0
+    text = ""
+
     try:
-        return _get_client().messages.create(
-            model=MODEL,
-            max_tokens=12000,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        # Tope de continuaciones por si el modelo se queda buscando en loop.
+        for _ in range(6):
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=12000,
+                tools=[WEB_SEARCH_TOOL],
+                messages=messages,
+            )
+
+            tokens_in += response.usage.input_tokens
+            tokens_out += response.usage.output_tokens
+            server_use = getattr(response.usage, "server_tool_use", None)
+            if server_use is not None:
+                searches += getattr(server_use, "web_search_requests", 0) or 0
+
+            if response.stop_reason == "pause_turn":
+                messages.append({"role": "assistant", "content": response.content})
+                continue
+
+            text = "".join(b.text for b in response.content if b.type == "text")
+            break
     except anthropic.AuthenticationError:
         raise RuntimeError(
             "API key de Anthropic inválida. Revisá ANTHROPIC_API_KEY en trendix_python."
@@ -102,6 +162,13 @@ def _call_anthropic(prompt: str):
                 "Sin créditos en Anthropic. Cargá saldo en console.anthropic.com → Plans & Billing."
             ) from None
         raise RuntimeError(f"Error de Anthropic: {e.message}") from e
+
+    return {
+        "text": text,
+        "tokens_input": tokens_in,
+        "tokens_output": tokens_out,
+        "searches": searches,
+    }
 
 
 def _extract_posts(text: str) -> list:
@@ -141,13 +208,21 @@ def build_single_prompt(
         if avoid_title
         else ""
     )
+    today_str, current_year = _today()
 
     return f"""Sos un estratega experto en redes sociales para {niche} en {location}.
 
-TENDENCIAS REALES encontradas esta semana en {niche} / {location}:
+FECHA DE HOY: {today_str}. Estamos en el año {current_year}. Todo lo que digas tiene que estar al día a esta fecha.
+
+TENDENCIAS REALES (Google Trends) de esta semana en {niche} / {location}:
 {trends_str}
 
-Usá estas tendencias y tu conocimiento de {location} para incluir datos y referencias actuales.
+Tenés una herramienta de búsqueda web. USALA para verificar y traer datos reales y actuales ({current_year}) sobre {niche} en {location}: cifras, precios, tasas, programas, leyes, fechas y nombres.
+
+REGLAS ESTRICTAS (no negociables):
+- No inventes nada. Toda cifra, precio, porcentaje, ley, programa o fecha tiene que salir de la búsqueda web o de las tendencias reales.
+- Nunca uses un año pasado como si fuera el actual. Si algo está vigente, referilo a {current_year}.
+- Si no encontrás un dato verificado, NO pongas un número o año específico inventado: hablá en términos generales.
 
 Perfil del creador:
 - Nicho: {niche}
@@ -186,7 +261,7 @@ CRÍTICO: Devolvé ÚNICAMENTE un objeto JSON válido (no un array). Sin markdow
   "production_note": "Un tip clave de filmación o producción"
 }}
 
-Todo en {language}. Datos reales y actuales de {location}. Guion listo para grabar."""
+Todo en {language}. Datos reales y verificados de {location}, al día a {current_year}. Guion listo para grabar."""
 
 
 async def regenerate_post(
@@ -200,14 +275,15 @@ async def regenerate_post(
     start = time.time()
 
     loop = asyncio.get_event_loop()
-    response = await loop.run_in_executor(None, _call_anthropic, prompt)
+    result = await loop.run_in_executor(None, _run_generation, prompt)
 
     duration_ms = int((time.time() - start) * 1000)
-    tokens_in = response.usage.input_tokens
-    tokens_out = response.usage.output_tokens
+    tokens_in = result["tokens_input"]
+    tokens_out = result["tokens_output"]
     cost = calculate_cost(MODEL, tokens_in, tokens_out)
+    cost += result["searches"] * WEB_SEARCH_COST_PER_CALL
 
-    text = "".join(b.text for b in response.content if b.type == "text")
+    text = result["text"]
     if not text.strip():
         raise ValueError(
             "Claude no devolvió texto. Revisá el modelo o la API key."
@@ -236,14 +312,15 @@ async def generate_calendar(
     start = time.time()
 
     loop = asyncio.get_event_loop()
-    response = await loop.run_in_executor(None, _call_anthropic, prompt)
+    result = await loop.run_in_executor(None, _run_generation, prompt)
 
     duration_ms = int((time.time() - start) * 1000)
-    tokens_in = response.usage.input_tokens
-    tokens_out = response.usage.output_tokens
+    tokens_in = result["tokens_input"]
+    tokens_out = result["tokens_output"]
     cost = calculate_cost(MODEL, tokens_in, tokens_out)
+    cost += result["searches"] * WEB_SEARCH_COST_PER_CALL
 
-    text = "".join(b.text for b in response.content if b.type == "text")
+    text = result["text"]
     if not text.strip():
         raise ValueError(
             "Claude no devolvió texto. Revisá el modelo o la API key."

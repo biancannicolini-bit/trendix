@@ -99,7 +99,8 @@ export async function processUser(user: UserWithProfile) {
           language: user.profile.language,
           frequency: user.profile.frequency,
         }),
-        signal: AbortSignal.timeout(120_000),
+        // Búsqueda web suma latencia: damos margen para varios posts.
+        signal: AbortSignal.timeout(300_000),
       });
 
       if (!res.ok) {
