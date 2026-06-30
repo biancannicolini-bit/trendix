@@ -18,6 +18,7 @@ type RegeneratedPost = {
   format: string;
   duration: string;
   production_note?: string | null;
+  sources?: string[];
 };
 
 type RegenerateUsage = {
@@ -78,7 +79,8 @@ export async function POST(
         pillar: post.pillar,
         avoid_title: post.title,
       }),
-      signal: AbortSignal.timeout(120_000),
+      // Búsqueda web suma latencia.
+      signal: AbortSignal.timeout(300_000),
     });
 
     if (!res.ok) {
@@ -102,6 +104,7 @@ export async function POST(
           format: generated.format,
           duration: generated.duration,
           productionNote: generated.production_note ?? null,
+          sources: generated.sources ?? [],
           completed: false,
           completedAt: null,
           regenerationCount: { increment: 1 },

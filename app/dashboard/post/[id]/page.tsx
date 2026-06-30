@@ -38,6 +38,7 @@ export default async function PostDetailPage({
         caption: post.caption,
         hashtags: post.hashtags,
         productionNote: post.productionNote,
+        sources: post.sources,
       }}
     />
   );

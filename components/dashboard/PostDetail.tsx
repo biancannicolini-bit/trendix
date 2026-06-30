@@ -24,6 +24,7 @@ export type PostDetailData = {
   caption: string;
   hashtags: string[];
   productionNote?: string | null;
+  sources?: string[] | null;
 };
 
 function scriptToText(script: ScriptSection[]) {
@@ -143,6 +144,19 @@ export function PostDetail({
           <div className="rounded-lg border border-[var(--color-border-tertiary)] bg-bg-secondary p-4 text-sm leading-relaxed text-text-secondary">
             {post.productionNote}
           </div>
+        </section>
+      )}
+
+      {post.sources && post.sources.length > 0 && (
+        <section className="space-y-1.5 border-t border-[var(--color-border-tertiary)] pt-3">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
+            Fuentes
+          </p>
+          <ul className="space-y-0.5 text-[11px] leading-snug text-text-tertiary">
+            {post.sources.map((src, i) => (
+              <li key={i}>{src}</li>
+            ))}
+          </ul>
         </section>
       )}
     </div>

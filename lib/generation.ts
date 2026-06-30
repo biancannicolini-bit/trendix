@@ -23,6 +23,7 @@ type GeneratedPost = {
   format: string;
   duration: string;
   production_note?: string | null;
+  sources?: string[];
 };
 
 type GenerateUsage = {
@@ -129,6 +130,7 @@ export async function processUser(user: UserWithProfile) {
             format: p.format,
             duration: p.duration,
             productionNote: p.production_note ?? null,
+            sources: p.sources ?? [],
           })),
         }),
         prisma.contentCalendar.update({

@@ -103,9 +103,12 @@ CRÍTICO: Devolvé ÚNICAMENTE un array JSON válido. Sin markdown, sin explicac
     "hashtags": ["#tag1","#tag2","#tag3","#tag4","#tag5","#tag6","#tag7"],
     "format": "Talking head",
     "duration": "60 seg",
-    "production_note": "Un tip clave de filmación o producción"
+    "production_note": "Un tip clave de filmación o producción",
+    "sources": ["Dato citado — Medio o sitio, año", "Otro dato — Fuente"]
   }}
 ]
+
+En "sources" listá, en pocas palabras, de dónde sacaste cada dato concreto (cifra, precio, ley, fecha) que usaste en el guión: una línea corta por dato, con el medio/sitio y el año. Si un post no usa datos duros, dejá "sources" como lista vacía [].
 
 Todo en {language}. Datos reales y verificados de {location}, al día a {current_year}. Guiones listos para grabar."""
 
@@ -258,8 +261,11 @@ CRÍTICO: Devolvé ÚNICAMENTE un objeto JSON válido (no un array). Sin markdow
   "hashtags": ["#tag1","#tag2","#tag3","#tag4","#tag5","#tag6","#tag7"],
   "format": "Talking head",
   "duration": "60 seg",
-  "production_note": "Un tip clave de filmación o producción"
+  "production_note": "Un tip clave de filmación o producción",
+  "sources": ["Dato citado — Medio o sitio, año", "Otro dato — Fuente"]
 }}
+
+En "sources" listá, en pocas palabras, de dónde sacaste cada dato concreto (cifra, precio, ley, fecha) que usaste en el guión: una línea corta por dato, con el medio/sitio y el año. Si no usás datos duros, dejá "sources" como lista vacía [].
 
 Todo en {language}. Datos reales y verificados de {location}, al día a {current_year}. Guion listo para grabar."""
 

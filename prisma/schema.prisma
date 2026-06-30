@@ -118,6 +118,7 @@ model Post {
   format         String
   duration       String
   productionNote String?
+  sources        String[]
 
   completed      Boolean   @default(false)
   completedAt    DateTime?
